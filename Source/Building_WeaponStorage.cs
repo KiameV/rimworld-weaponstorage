@@ -16,7 +16,7 @@ namespace WeaponStorage
         static Building_WeaponStorage()
         {
         }
-        
+
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
@@ -40,7 +40,7 @@ namespace WeaponStorage
             catch (Exception e)
             {
                 Log.Error(
-                    this.GetType().Name +  ".Destroy\n" +
+                    this.GetType().Name + ".Destroy\n" +
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
@@ -80,33 +80,21 @@ namespace WeaponStorage
 
         private void Dispose()
         {
-            /*try
+            try
             {
-                if (this.storedApparel != null)
+                if (this.StoredWeapons != null)
                 {
-                    DropApparel(this.storedApparel);
-                    this.storedApparel.Clear();
-                }
-
-                if (Settings.LinkGroupsToDresser)
-                {
-                    List<StoredApparelSet> sets = StoredApparelContainer.RemoveApparelSets(this);
-                    if (sets != null)
-                    {
-                        foreach (StoredApparelSet set in sets)
-                        {
-                            DropApparel(set.Apparel);
-                        }
-                    }
+                    DropWeapons(this.StoredWeapons);
+                    this.StoredWeapons.Clear();
                 }
             }
             catch (Exception e)
             {
                 Log.Error(
-                    this.GetType().Name + ".Dispose\n" + 
-                    e.GetType().Name + " " + e.Message + "\n" + 
+                    this.GetType().Name + ".Dispose\n" +
+                    e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
-            }*/
+            }
         }
 
         private void DropWeapons(List<ThingWithComps> weapons, bool makeForbidden = true)
@@ -273,85 +261,6 @@ namespace WeaponStorage
             }
         }
 
-        /*public override IEnumerable<FloatMenuOption> GetFloatMenuOptions(Pawn pawn)
-        {
-            List<FloatMenuOption> list = new List<FloatMenuOption>();
-            if (pawn.apparel.WornApparel.Count > 0)
-            {
-                list.Add(new FloatMenuOption(
-                    "ChangeDresser.ChangeApparelColors".Translate(),
-                    delegate
-                    {
-                        Job job = new Job(this.changeApparelColorJobDef, this);
-                        pawn.jobs.TryTakeOrderedJob(job);
-                    }));
-            }
-
-            list.Add(new FloatMenuOption(
-                "ChangeDresser.ChangeHair".Translate(),
-                delegate
-                {
-                    Job job = new Job(this.changeHairStyleJobDef, this);
-                    pawn.jobs.TryTakeOrderedJob(job);
-                }));
-            if (Settings.ShowBodyChange)
-            {
-                list.Add(new FloatMenuOption(
-                    "ChangeDresser.ChangeBody".Translate(),
-                    delegate
-                    {
-                        Job job = new Job(this.changeBodyJobDef, this);
-                        pawn.jobs.TryTakeOrderedJob(job);
-                    }));
-            }
-            list.Add(new FloatMenuOption(
-                "ChangeDresser.StoreApparel".Translate(),
-                delegate
-                {
-                    Job job = new Job(this.storeApparelJobDef, this);
-                    pawn.jobs.TryTakeOrderedJob(job);
-                }));
-
-            StoredApparelSet wornSet;
-            if (StoredApparelContainer.TryGetWornApparelSet(pawn, out wornSet))
-            {
-                list.Add(new FloatMenuOption(
-                "ChangeDresser.UnwearGroup".Translate() + " \"" + wornSet.Name + "\"",
-                delegate
-                {
-                    Job job = new SwapApparelJob(this.wearApparelGroupJobDef, this, wornSet.Name);
-                    pawn.jobs.TryTakeOrderedJob(job);
-                }));
-            }
-            else
-            {
-                IEnumerable<StoredApparelSet> sets;
-                if (Settings.LinkGroupsToDresser)
-                    sets = StoredApparelContainer.GetApparelSets(this);
-                else
-                    sets = StoredApparelContainer.GetAllApparelSets();
-                int i = 0;
-                foreach (StoredApparelSet set in sets)
-                {
-                    if (!set.IsBeingWorn &&
-                        (set.IsOwnedBy(pawn) || !set.HasOwner))
-                    {
-                        list.Add(new FloatMenuOption(
-                            "ChangeDresser.WearGroup".Translate() + " \"" + set.Name + "\"",
-                            delegate
-                            {
-                                Job job = new SwapApparelJob(this.wearApparelGroupJobDef, this, set.Name);
-                                pawn.jobs.TryTakeOrderedJob(job);
-                            }));
-                    }
-                    ++i;
-                }
-            }
-            return list;
-        }
-
-        */
-
         public override IEnumerable<Gizmo> GetGizmos()
         {
             IEnumerable<Gizmo> enumerables = base.GetGizmos();
@@ -378,7 +287,7 @@ namespace WeaponStorage
             a.defaultDesc = "WeaponStorage.EmptyDesc".Translate();
             a.defaultLabel = "WeaponStorage.Empty".Translate();
             a.activateSound = SoundDef.Named("Click");
-            a.action = 
+            a.action =
                 delegate
                 {
                     this.DropWeapons(this.storedWeapons, false);

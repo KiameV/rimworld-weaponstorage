@@ -26,46 +26,38 @@ namespace WeaponStorage.UI
             }
         }
 
-        private List<Pawn> selectablePawns = new List<Pawn>();
+        private Dictionary<string, Pawn> pawnLookup = null;
+        private List<Pawn> selectablePawns = null;
         private List<Pawn> PlayerPawns
         {
             get
             {
-                if (selectablePawns.Count == 0)
+                if (selectablePawns == null)
                 {
                     selectablePawns = new List<Pawn>();
+                    pawnLookup = new Dictionary<string, Pawn>();
                     foreach (Pawn p in PawnsFinder.AllMapsAndWorld_Alive)
                     {
                         if (p.Faction == Faction.OfPlayer && p.def.defName.Equals("Human"))
                         {
                             selectablePawns.Add(p);
+                            pawnLookup.Add(p.ThingID, p);
                         }
                     }
-
 
                     for (int i = AssignedWeaponContainer.AssignedWeapons.Count - 1; i >= 0; --i)
                     {
                         bool delete = false;
-                        if (AssignedWeaponContainer.AssignedWeapons[i].Pawn.Dead)
+                        Pawn pawn = null;
+                        if (!pawnLookup.TryGetValue(AssignedWeaponContainer.AssignedWeapons[i].PawnId, out pawn))
                         {
                             delete = true;
                         }
-                        else
+                        else if (pawn.Dead)
                         {
-                            bool found = false;
-                            foreach (Pawn p in selectablePawns)
-                            {
-                                if (p.ThingID.Equals(AssignedWeaponContainer.AssignedWeapons[i].Pawn.ThingID))
-                                {
-                                    found = true;
-                                    break;
-                                }
-                                if (!found)
-                                {
-                                    delete = true;
-                                }
-                            }
+                            delete = true;
                         }
+
                         if (delete)
                         {
                             this.weaponStorage.StoredWeapons.AddRange(AssignedWeaponContainer.AssignedWeapons[i].Weapons);
@@ -122,7 +114,7 @@ namespace WeaponStorage.UI
                             if (!AssignedWeaponContainer.TryGetAssignedWeapons(p, out assignedWeapons))
                             {
                                 assignedWeapons = new AssignedWeaponContainer();
-                                assignedWeapons.Pawn = p;
+                                assignedWeapons.PawnId = p.ThingID;
                             }
 
                             this.selectedWeapons = new List<WeaponSelected>(assignedWeapons.Weapons.Count + this.weaponStorage.StoredWeapons.Count);
@@ -148,7 +140,7 @@ namespace WeaponStorage.UI
                 if (this.selectedWeapons != null)
                 {
                     Listing_Standard lst = new Listing_Standard();
-                    lst.Begin(new Rect(20, 50, 500, 400));
+                    lst.Begin(new Rect(20, 50, 300, 400));
                     for (int i = 0; i < this.selectedWeapons.Count; ++i)
                     {
                         WeaponSelected selected = this.selectedWeapons[i];
@@ -178,6 +170,17 @@ namespace WeaponStorage.UI
         {
             base.PostClose();
             this.SetAssignedWeapons(this.selectedPawn, this.selectedWeapons);
+
+            if (this.pawnLookup != null)
+            {
+                this.pawnLookup.Clear();
+                this.pawnLookup = null;
+            }
+            if (this.selectablePawns != null)
+            {
+                this.selectablePawns.Clear();
+                this.selectablePawns = null;
+            }
         }
 
         private void SetAssignedWeapons(Pawn p, List<WeaponSelected> weapons)
@@ -191,7 +194,7 @@ namespace WeaponStorage.UI
             if (!AssignedWeaponContainer.TryGetAssignedWeapons(p, out assignedWeapons))
             {
                 assignedWeapons = new AssignedWeaponContainer();
-                assignedWeapons.Pawn = p;
+                assignedWeapons.PawnId = p.ThingID;
             }
             assignedWeapons.Weapons.Clear();
             this.weaponStorage.StoredWeapons.Clear();

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Verse;
 
 namespace WeaponStorage
@@ -14,7 +13,7 @@ namespace WeaponStorage
             {
                 foreach (AssignedWeaponContainer c in AssignedWeapons)
                 {
-                    if (c.Pawn.ThingID.Equals(pawn.ThingID))
+                    if (c.PawnId.Equals(pawn.ThingID))
                     {
                         assignedWeaponContainer = c;
                         return true;
@@ -29,7 +28,7 @@ namespace WeaponStorage
         {
             for (int i = 0; i < AssignedWeapons.Count; ++i)
             {
-                if (AssignedWeapons[i].Pawn.ThingID.Equals(assignedWeapons.Pawn.ThingID))
+                if (AssignedWeapons[i].PawnId.Equals(assignedWeapons.PawnId))
                 {
                     AssignedWeapons[i] = assignedWeapons;
                     return;
@@ -42,7 +41,7 @@ namespace WeaponStorage
         {
             for (int i = 0; i < AssignedWeapons.Count; ++i)
             {
-                if (AssignedWeapons[i].Pawn.ThingID.Equals(pawn.ThingID))
+                if (AssignedWeapons[i].PawnId.Equals(pawn.ThingID))
                 {
                     AssignedWeapons.RemoveAt(i);
                     break;
@@ -51,14 +50,14 @@ namespace WeaponStorage
         }
 
 
-
-        public Pawn Pawn;
+        public string PawnId = "";
+        //public Pawn Pawn;
         public List<ThingWithComps> Weapons = new List<ThingWithComps>();
 
         public void ExposeData()
         {
-            Scribe_References.Look(ref this.Pawn, "pawn", true);
-            Scribe_Collections.Look(ref this.Weapons, "weapons", LookMode.Deep);
+            Scribe_Values.Look(ref this.PawnId, "pawn", "", true);
+            Scribe_Collections.Look(ref this.Weapons, "weapons", LookMode.Deep, new object[0]);
         }
     }
 }
