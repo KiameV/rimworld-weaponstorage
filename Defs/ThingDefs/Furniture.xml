@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ThingDefs>
+
+  <ThingDef ParentName="FurnitureBase">
+    <defName>WeaponStorage</defName>
+    <label>weapon storage</label>
+    <Description>Store weapons for use later.</Description>
+    <ThingClass>WeaponStorage.Building_WeaponStorage</ThingClass>
+    <graphicData>
+      <texPath>Furniture/WeaponStorage</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <shaderType>CutoutComplex</shaderType>
+      <drawSize>(1, 1)</drawSize>
+    </graphicData>
+    <stuffCategories>
+      <li>Metallic</li>
+      <li>Woody</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>40</costStuffCount>
+    <CostList>
+      <Steel>40</Steel>
+    </CostList>
+    <AltitudeLayer>Building</AltitudeLayer>
+    <statBases>
+      <WorkToBuild>1000</WorkToBuild>
+      <MaxHitPoints>100</MaxHitPoints>
+      <Flammability>1.0</Flammability>
+      <Beauty>-5</Beauty>
+    </statBases>
+    <inspectorTabs>
+      <li>ITab_Storage</li>
+    </inspectorTabs>
+    <designationHotKey>Misc12</designationHotKey>
+    <building>
+      <preventDeterioration>true</preventDeterioration>
+      <fixedStorageSettings>
+        <filter>
+          <categories>
+            <li>Weapons</li>
+          </categories>
+          <thingDefs />
+        </filter>
+      </fixedStorageSettings>
+      <defaultStorageSettings>
+        <priority>Low</priority>
+        <filter>
+          <categories>
+            <li>Weapons</li>
+          </categories>
+        </filter>
+      </defaultStorageSettings>
+    </building>
+    <castEdgeShadows>true</castEdgeShadows>
+    <Size>(1,1)</Size>
+    <DesignationCategory>Furniture</DesignationCategory>
+    <hasInteractionCell>True</hasInteractionCell>
+    <interactionCellOffset>(0,0,1)</interactionCellOffset>
+    <surfaceType>None</surfaceType>
+    <tickerType>Long</tickerType>
+  </ThingDef>
+</ThingDefs>

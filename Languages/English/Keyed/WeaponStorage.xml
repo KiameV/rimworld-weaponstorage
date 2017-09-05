@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+	<WeaponStorage.AssignTo>Assign To</WeaponStorage.AssignTo>
+	
+	<WeaponStorage.AssignWeapons>Assign Weapons</WeaponStorage.AssignWeapons>
+	<WeaponStorage.AssignWeaponsDesc>Assign weapons to specific pawns.</WeaponStorage.AssignWeaponsDesc>
+	
+	<WeaponStorage.Empty>Empty</WeaponStorage.Empty>
+	<WeaponStorage.EmptyDesc>Place all the stored weapons on the ground.</WeaponStorage.EmptyDesc>
+	
+	<WeaponStorage.StoragePriority>Priority</WeaponStorage.StoragePriority>
+	<WeaponStorage.Count>Stored Weapons</WeaponStorage.Count>
+	
+	<WeaponStorage.Equip>Equip</WeaponStorage.Equip>
+</LanguageData>
