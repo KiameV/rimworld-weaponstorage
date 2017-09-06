@@ -12,6 +12,7 @@ namespace WeaponStorage.UI
         private readonly Building_WeaponStorage weaponStorage;
 
         private List<WeaponSelected> selectedWeapons;
+        Vector2 scrollPosition = new Vector2(0, 0);
 
         private Pawn selectedPawn = null;
         private string SelectedPawnName
@@ -139,8 +140,11 @@ namespace WeaponStorage.UI
 
                 if (this.selectedWeapons != null)
                 {
+                    Rect r = new Rect(0, 0, 334, this.selectedWeapons.Count * 26);
+                    scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 350, 400), scrollPosition, r);
+                    r = r.ContractedBy(4);
                     Listing_Standard lst = new Listing_Standard();
-                    lst.Begin(new Rect(20, 50, 300, 400));
+                    lst.Begin(r);
                     for (int i = 0; i < this.selectedWeapons.Count; ++i)
                     {
                         WeaponSelected selected = this.selectedWeapons[i];
@@ -150,6 +154,7 @@ namespace WeaponStorage.UI
                         this.selectedWeapons[i] = selected;
                     }
                     lst.End();
+                    GUI.EndScrollView();
                 }
             }
             catch (Exception e)
