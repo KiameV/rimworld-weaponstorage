@@ -118,7 +118,7 @@ namespace WeaponStorage.UI
                                 assignedWeapons.PawnId = p.ThingID;
                             }
 
-                            this.selectedWeapons = new List<WeaponSelected>(assignedWeapons.Weapons.Count + this.weaponStorage.StoredWeapons.Count);
+                            this.selectedWeapons = new List<WeaponSelected>(assignedWeapons.Weapons.Count + this.weaponStorage.StoredWeapons.Count + 1);
                             foreach (ThingWithComps t in assignedWeapons.Weapons)
                             {
                                 if (t != null)
@@ -133,18 +133,25 @@ namespace WeaponStorage.UI
                                     this.selectedWeapons.Add(new WeaponSelected(t, false));
                                 }
                             }
+                            ThingWithComps primary = p.equipment.Primary;
+                            if (primary != null)
+                            {
+                                this.selectedWeapons.Add(new WeaponSelected(primary, true));
+                            }
                         }, MenuOptionPriority.Default, null, null, 0f, null, null));
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
+                
+                int count = (this.selectedWeapons != null) ? this.selectedWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.StoredWeapons.Count : 0);
+                Rect r = new Rect(0, 0, 334, count * 26);
+                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 350, 400), scrollPosition, r);
+                r = r.ContractedBy(4);
+                Listing_Standard lst = new Listing_Standard();
+                lst.Begin(r);
 
                 if (this.selectedWeapons != null)
                 {
-                    Rect r = new Rect(0, 0, 334, this.selectedWeapons.Count * 26);
-                    scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 350, 400), scrollPosition, r);
-                    r = r.ContractedBy(4);
-                    Listing_Standard lst = new Listing_Standard();
-                    lst.Begin(r);
                     for (int i = 0; i < this.selectedWeapons.Count; ++i)
                     {
                         WeaponSelected selected = this.selectedWeapons[i];
@@ -153,9 +160,18 @@ namespace WeaponStorage.UI
                         selected.isChecked = isChecked;
                         this.selectedWeapons[i] = selected;
                     }
-                    lst.End();
-                    GUI.EndScrollView();
                 }
+                else if (this.weaponStorage.StoredWeapons != null)
+                {
+                    for (int i = 0; i < this.weaponStorage.StoredWeapons.Count; ++i)
+                    {
+                        ThingWithComps t = this.weaponStorage.StoredWeapons[i];
+                        lst.Label(t.Label);
+                    }
+                }
+
+                lst.End();
+                GUI.EndScrollView();
             }
             catch (Exception e)
             {
@@ -204,10 +220,21 @@ namespace WeaponStorage.UI
             assignedWeapons.Weapons.Clear();
             this.weaponStorage.StoredWeapons.Clear();
 
+            ThingWithComps primary = p.equipment.Primary;
             foreach (WeaponSelected selected in weapons)
             {
-                if (selected.isChecked)
+                if (primary != null && 
+                    selected.thing.thingIDNumber == primary.thingIDNumber)
                 {
+                    if (!selected.isChecked)
+                    {
+                        p.equipment.Remove(primary);
+                    }
+                    // else - Do Nothing
+                }
+                else if (selected.isChecked)
+                {
+                    
                     assignedWeapons.Weapons.Add(selected.thing);
                 }
                 else
