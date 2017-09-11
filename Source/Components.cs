@@ -6,13 +6,64 @@ namespace WeaponStorage
 {
     class WorldComp : WorldComponent
     {
-        public WorldComp(World world) : base(world) { }
+        public static List<AssignedWeaponContainer> AssignedWeapons = new List<AssignedWeaponContainer>();
+
+        public WorldComp(World world) : base(world)
+        {
+            foreach (AssignedWeaponContainer c in AssignedWeapons)
+            {
+                c.Weapons.Clear();
+            }
+            AssignedWeapons.Clear();
+        }
+
+        public static void Add(AssignedWeaponContainer assignedWeapons)
+        {
+#if DEBUG
+            Log.Warning("WeaponStorage.TryAdd for " + assignedWeapons.PawnId);
+#endif
+            AssignedWeaponContainer c;
+            if (!TryGetAssignedWeapons(assignedWeapons.PawnId, out c))
+            {
+                AssignedWeapons.Add(assignedWeapons);
+            }
+            else
+            {
+                c.Weapons = assignedWeapons.Weapons;
+            }
+        }
+
+        public static bool TryGetAssignedWeapons(string pawnId, out AssignedWeaponContainer assignedWeaponContainer)
+        {
+            foreach (AssignedWeaponContainer c in AssignedWeapons)
+            {
+                if (c.PawnId.Equals(pawnId))
+                {
+                    assignedWeaponContainer = c;
+                    return true;
+                }
+            }
+            assignedWeaponContainer = null;
+            return false;
+        }
+
+        public static void Remove(Pawn pawn)
+        {
+            for (int i = 0; i < AssignedWeapons.Count; ++i)
+            {
+                if (AssignedWeapons[i].PawnId.Equals(pawn.ThingID))
+                {
+                    AssignedWeapons.RemoveAt(i);
+                    break;
+                }
+            }
+        }
 
         public override void ExposeData()
         {
             base.ExposeData();
 
-            Scribe_Collections.Look(ref AssignedWeaponContainer.AssignedWeapons, "assignedWeapons", LookMode.Deep, new object[0]);
+            Scribe_Collections.Look(ref AssignedWeapons, "assignedWeapons", LookMode.Deep, new object[0]);
         }
     }
 }

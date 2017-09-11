@@ -8,26 +8,13 @@ namespace WeaponStorage.UI
 {
     public class AssignUI : Window
     {
-        public enum ApparelFromEnum { Pawn, Storage };
         private readonly Building_WeaponStorage weaponStorage;
 
-        private List<WeaponSelected> selectedWeapons;
-        Vector2 scrollPosition = new Vector2(0, 0);
-
         private Pawn selectedPawn = null;
-        private string SelectedPawnName
-        {
-            get
-            {
-                if (this.selectedPawn != null)
-                {
-                    return this.selectedPawn.Name.ToStringShort;
-                }
-                return null;
-            }
-        }
+        private List<WeaponSelected> PossibleWeapons = null;
 
-        private Dictionary<string, Pawn> pawnLookup = null;
+        private Vector2 scrollPosition = new Vector2(0, 0);
+
         private List<Pawn> selectablePawns = null;
         private List<Pawn> PlayerPawns
         {
@@ -36,33 +23,24 @@ namespace WeaponStorage.UI
                 if (selectablePawns == null)
                 {
                     selectablePawns = new List<Pawn>();
-                    pawnLookup = new Dictionary<string, Pawn>();
+                    Dictionary<string, Pawn> pawnLookup = new Dictionary<string, Pawn>();
                     foreach (Pawn p in PawnsFinder.AllMapsAndWorld_Alive)
                     {
-                        if (p.Faction == Faction.OfPlayer && p.def.defName.Equals("Human"))
+                        if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
                         {
                             selectablePawns.Add(p);
                             pawnLookup.Add(p.ThingID, p);
                         }
                     }
 
-                    for (int i = AssignedWeaponContainer.AssignedWeapons.Count - 1; i >= 0; --i)
+                    for (int i = WorldComp.AssignedWeapons.Count - 1; i >= 0; --i)
                     {
-                        bool delete = false;
-                        Pawn pawn = null;
-                        if (!pawnLookup.TryGetValue(AssignedWeaponContainer.AssignedWeapons[i].PawnId, out pawn))
+                        AssignedWeaponContainer c = WorldComp.AssignedWeapons[i];
+                        Pawn cPawn;
+                        if (!pawnLookup.TryGetValue(c.PawnId, out cPawn) || cPawn.Dead)
                         {
-                            delete = true;
-                        }
-                        else if (pawn.Dead)
-                        {
-                            delete = true;
-                        }
-
-                        if (delete)
-                        {
-                            this.weaponStorage.StoredWeapons.AddRange(AssignedWeaponContainer.AssignedWeapons[i].Weapons);
-                            AssignedWeaponContainer.AssignedWeapons.RemoveAt(i);
+                            this.weaponStorage.StoredWeapons.AddRange(c.Weapons);
+                            WorldComp.AssignedWeapons.RemoveAt(i);
                         }
                     }
                 }
@@ -74,7 +52,7 @@ namespace WeaponStorage.UI
         {
             this.weaponStorage = weaponStorage;
 
-            this.selectedWeapons = null;
+            this.PossibleWeapons = null;
 
             this.closeOnEscapeKey = true;
             this.doCloseButton = true;
@@ -91,12 +69,19 @@ namespace WeaponStorage.UI
             }
         }
 
+#if DEBUG
+        int i = 600;
+#endif
         public override void DoWindowContents(Rect inRect)
         {
+#if DEBUG
+            ++i;
+#endif
             try
             {
                 Widgets.Label(new Rect(0, 0, 150, 30), "WeaponStorage.AssignTo".Translate());
-                if (Widgets.ButtonText(new Rect(175, 0, 150, 30), this.SelectedPawnName))
+                string label = (this.selectedPawn != null) ? this.selectedPawn.NameStringShort : "Pawn";
+                if (Widgets.ButtonText(new Rect(175, 0, 150, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     foreach (Pawn p in PlayerPawns)
@@ -105,67 +90,80 @@ namespace WeaponStorage.UI
                         {
                             if (this.selectedPawn != null)
                             {
-                                this.SetAssignedWeapons(this.selectedPawn, this.selectedWeapons);
-                                this.selectedWeapons.Clear();
+                                this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
+                                this.PossibleWeapons.Clear();
                             }
+                            this.PossibleWeapons = null;
 
                             this.selectedPawn = p;
 
-                            AssignedWeaponContainer assignedWeapons;
-                            if (!AssignedWeaponContainer.TryGetAssignedWeapons(p, out assignedWeapons))
+                            int size;
+                            AssignedWeaponContainer c;
+                            if (!WorldComp.TryGetAssignedWeapons(p.ThingID, out c))
                             {
-                                assignedWeapons = new AssignedWeaponContainer();
-                                assignedWeapons.PawnId = p.ThingID;
+                                size = this.weaponStorage.StoredWeapons.Count + 1;
+                                c = null;
+                            }
+                            else
+                            {
+                                size = c.Weapons.Count + this.weaponStorage.StoredWeapons.Count + 1;
                             }
 
-                            this.selectedWeapons = new List<WeaponSelected>(assignedWeapons.Weapons.Count + this.weaponStorage.StoredWeapons.Count + 1);
-                            foreach (ThingWithComps t in assignedWeapons.Weapons)
+                            this.PossibleWeapons = new List<WeaponSelected>(size);
+                            ThingWithComps primary = p.equipment.Primary;
+                            if (primary != null)
                             {
-                                if (t != null)
+                                this.PossibleWeapons.Add(new WeaponSelected(primary, true));
+                            }
+                            if (c != null)
+                            {
+                                foreach (ThingWithComps t in c.Weapons)
                                 {
-                                    this.selectedWeapons.Add(new WeaponSelected(t, true));
+                                    this.PossibleWeapons.Add(new WeaponSelected(t, true));
                                 }
                             }
                             foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
                             {
-                                if (t != null)
-                                {
-                                    this.selectedWeapons.Add(new WeaponSelected(t, false));
-                                }
-                            }
-                            ThingWithComps primary = p.equipment.Primary;
-                            if (primary != null)
-                            {
-                                this.selectedWeapons.Add(new WeaponSelected(primary, true));
+                                this.PossibleWeapons.Add(new WeaponSelected(t, false));
                             }
                         }, MenuOptionPriority.Default, null, null, 0f, null, null));
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
-                
-                int count = (this.selectedWeapons != null) ? this.selectedWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.StoredWeapons.Count : 0);
-                Rect r = new Rect(0, 0, 334, count * 26);
+
+                int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.StoredWeapons.Count : 0);
+                Rect r = new Rect(0, 20, 334, count * 26);
                 scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 350, 400), scrollPosition, r);
-                r = r.ContractedBy(4);
                 Listing_Standard lst = new Listing_Standard();
                 lst.Begin(r);
 
-                if (this.selectedWeapons != null)
+                if (this.selectedPawn != null && this.PossibleWeapons != null)
                 {
-                    for (int i = 0; i < this.selectedWeapons.Count; ++i)
+                    for (int i = 0; i < this.PossibleWeapons.Count; ++i)
                     {
-                        WeaponSelected selected = this.selectedWeapons[i];
+                        WeaponSelected selected = this.PossibleWeapons[i];
                         bool isChecked = selected.isChecked;
                         lst.CheckboxLabeled(selected.thing.Label, ref isChecked);
                         selected.isChecked = isChecked;
-                        this.selectedWeapons[i] = selected;
+                        this.PossibleWeapons[i] = selected;
                     }
                 }
-                else if (this.weaponStorage.StoredWeapons != null)
+                else
                 {
-                    for (int i = 0; i < this.weaponStorage.StoredWeapons.Count; ++i)
+#if DEBUG
+                    if (i > 600)
                     {
-                        ThingWithComps t = this.weaponStorage.StoredWeapons[i];
+                        Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.StoredWeapons.Count);
+                    }
+#endif
+                    foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
+                    {
+#if DEBUG
+                        if (i > 600)
+                        {
+                            Log.Warning("-" + t.Label);
+                        }
+#endif
                         lst.Label(t.Label);
                     }
                 }
@@ -184,19 +182,20 @@ namespace WeaponStorage.UI
             {
                 Text.Anchor = TextAnchor.UpperLeft;
                 GUI.color = Color.white;
+#if DEBUG
+                if (i > 600)
+                {
+                    i = 0;
+                }
+#endif
             }
         }
 
         public override void PostClose()
         {
             base.PostClose();
-            this.SetAssignedWeapons(this.selectedPawn, this.selectedWeapons);
+            this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
 
-            if (this.pawnLookup != null)
-            {
-                this.pawnLookup.Clear();
-                this.pawnLookup = null;
-            }
             if (this.selectablePawns != null)
             {
                 this.selectablePawns.Clear();
@@ -210,46 +209,55 @@ namespace WeaponStorage.UI
             {
                 return;
             }
-            
-            AssignedWeaponContainer assignedWeapons;
-            if (!AssignedWeaponContainer.TryGetAssignedWeapons(p, out assignedWeapons))
-            {
-                assignedWeapons = new AssignedWeaponContainer();
-                assignedWeapons.PawnId = p.ThingID;
-            }
-            assignedWeapons.Weapons.Clear();
-            this.weaponStorage.StoredWeapons.Clear();
 
+            AssignedWeaponContainer c;
+            if (!WorldComp.TryGetAssignedWeapons(p.ThingID, out c))
+            {
+                c = new AssignedWeaponContainer();
+                c.PawnId = p.ThingID;
+            }
+
+            this.weaponStorage.StoredWeapons.AddRange(c.Weapons);
+            c.Weapons.Clear();
+
+            bool primaryFound = false;
             ThingWithComps primary = p.equipment.Primary;
-            foreach (WeaponSelected selected in weapons)
+            foreach (WeaponSelected s in this.PossibleWeapons)
             {
-                if (primary != null && 
-                    selected.thing.thingIDNumber == primary.thingIDNumber)
+                if (s.isChecked)
                 {
-                    if (!selected.isChecked)
+                    if (primary != null && !primaryFound &&
+                        primary.thingIDNumber == s.thing.thingIDNumber)
                     {
-                        p.equipment.Remove(primary);
+                        primaryFound = true;
                     }
-                    // else - Do Nothing
-                }
-                else if (selected.isChecked)
-                {
-                    
-                    assignedWeapons.Weapons.Add(selected.thing);
-                }
-                else
-                {
-                    this.weaponStorage.StoredWeapons.Add(selected.thing);
+                    else
+                    {
+                        if (this.weaponStorage.RemoveNoDrop(s.thing))
+                        {
+                            c.Weapons.Add(s.thing);
+                        }
+                    }
                 }
             }
 
-            if (assignedWeapons.Weapons.Count == 0)
+            if (!primaryFound && primary != null &&
+                (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
             {
-                AssignedWeaponContainer.Remove(p);
+                p.equipment.Remove(primary);
+                this.weaponStorage.StoredWeapons.Add(primary);
+            }
+
+            if (c.Weapons.Count == 0)
+            {
+                WorldComp.AssignedWeapons.Remove(c);
             }
             else
             {
-                AssignedWeaponContainer.Set(assignedWeapons);
+#if DEBUG
+                Log.Warning("AssignUI.SetAssignedWeapons: Try Add");
+#endif
+                WorldComp.Add(c);
             }
         }
     }

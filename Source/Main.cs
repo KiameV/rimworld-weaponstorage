@@ -27,7 +27,7 @@ namespace WeaponStorage
             if (__instance.pawn.Drafted)
             {
                 AssignedWeaponContainer weapons;
-                if (AssignedWeaponContainer.TryGetAssignedWeapons(__instance.pawn, out weapons))
+                if (WorldComp.TryGetAssignedWeapons(__instance.pawn.ThingID, out weapons))
                 {
                     List<Gizmo> l;
                     if (__result != null)

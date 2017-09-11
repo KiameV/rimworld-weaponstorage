@@ -185,10 +185,11 @@ namespace WeaponStorage
         {
             this.Tick();
             StringBuilder sb = new StringBuilder(base.GetInspectString());
+            sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.StoragePriority".Translate());
             sb.Append(": ");
             sb.Append(("StoragePriority" + base.settings.Priority).Translate());
-            sb.Append("\n");
+            sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.Count".Translate());
             sb.Append(": ");
             sb.Append(this.storedWeapons.Count);
@@ -202,12 +203,6 @@ namespace WeaponStorage
                 if (this.storedWeapons == null)
                     this.storedWeapons = new List<ThingWithComps>();
                 return this.storedWeapons;
-            }
-            set
-            {
-                this.storedWeapons = value;
-                if (this.storedWeapons == null)
-                    this.storedWeapons = new List<ThingWithComps>();
             }
         }
 
@@ -225,6 +220,11 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+        }
+
+        public bool RemoveNoDrop(ThingWithComps thing)
+        {
+            return this.storedWeapons.Remove(thing);
         }
 
         private readonly Stopwatch stopWatch = new Stopwatch();
