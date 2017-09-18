@@ -84,7 +84,10 @@ namespace WeaponStorage
             {
                 if (this.StoredWeapons != null)
                 {
-                    DropWeapons(this.StoredWeapons);
+                    foreach(ThingWithComps t in this.storedWeapons)
+                    {
+                        this.DropThing(t, true);
+                    }
                     this.StoredWeapons.Clear();
                 }
             }
@@ -92,27 +95,6 @@ namespace WeaponStorage
             {
                 Log.Error(
                     this.GetType().Name + ".Dispose\n" +
-                    e.GetType().Name + " " + e.Message + "\n" +
-                    e.StackTrace);
-            }
-        }
-
-        private void DropWeapons(List<ThingWithComps> weapons, bool makeForbidden = true)
-        {
-            try
-            {
-                if (weapons != null)
-                {
-                    foreach (ThingWithComps t in weapons)
-                    {
-                        this.DropThing(t, makeForbidden);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(
-                    this.GetType().Name + ".DropApparel\n" +
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
@@ -290,8 +272,14 @@ namespace WeaponStorage
             a.action =
                 delegate
                 {
-                    this.DropWeapons(this.storedWeapons, false);
-                    this.storedWeapons.Clear();
+                    if (this.StoredWeapons != null)
+                    {
+                        foreach (ThingWithComps t in this.storedWeapons)
+                        {
+                            this.DropThing(t, false);
+                        }
+                        this.StoredWeapons.Clear();
+                    }
                 };
             a.groupKey = groupKey + 1;
             l.Add(a);

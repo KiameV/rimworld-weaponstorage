@@ -10,6 +10,8 @@ namespace WeaponStorage.UI
     {
         private readonly Building_WeaponStorage weaponStorage;
 
+        public static Texture2D DropTexture;
+
         private Pawn selectedPawn = null;
         private List<WeaponSelected> PossibleWeapons = null;
 
@@ -77,6 +79,8 @@ namespace WeaponStorage.UI
 #if DEBUG
             ++i;
 #endif
+            GUI.color = Color.white;
+            Text.Font = GameFont.Small;
             try
             {
                 Widgets.Label(new Rect(0, 0, 150, 30), "WeaponStorage.AssignTo".Translate());
@@ -131,21 +135,35 @@ namespace WeaponStorage.UI
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
 
+                const int HEIGHT = 30;
+                const int BUFFER = 2;
                 int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.StoredWeapons.Count : 0);
-                Rect r = new Rect(0, 20, 334, count * 26);
-                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 350, 400), scrollPosition, r);
-                Listing_Standard lst = new Listing_Standard();
-                lst.Begin(r);
-
+                Rect r = new Rect(0, 20, 384, (count + 1) * (HEIGHT + BUFFER));
+                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 400, 400), scrollPosition, r);
+                
                 if (this.selectedPawn != null && this.PossibleWeapons != null)
                 {
                     for (int i = 0; i < this.PossibleWeapons.Count; ++i)
                     {
-                        WeaponSelected selected = this.PossibleWeapons[i];
-                        bool isChecked = selected.isChecked;
-                        lst.CheckboxLabeled(selected.thing.Label, ref isChecked);
-                        selected.isChecked = isChecked;
-                        this.PossibleWeapons[i] = selected;
+                        GUI.BeginGroup(new Rect(0, 55 + i * (HEIGHT + BUFFER), r.width, HEIGHT));
+                        WeaponSelected weapon = this.PossibleWeapons[i];
+
+                        bool isChecked = weapon.isChecked;
+                        Widgets.Checkbox(0, (HEIGHT - 20) / 2, ref isChecked, 20);
+                        weapon.isChecked = isChecked;
+
+                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), weapon.thing);
+
+                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), weapon.thing.Label);
+
+                        if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
+                        {
+                            this.PossibleWeapons.RemoveAt(i);
+                            this.weaponStorage.Remove(weapon.thing);
+                            break;
+                        }
+                        this.PossibleWeapons[i] = weapon;
+                        GUI.EndGroup();
                     }
                 }
                 else
@@ -156,6 +174,7 @@ namespace WeaponStorage.UI
                         Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.StoredWeapons.Count);
                     }
 #endif
+                    int i = 0;
                     foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
                     {
 #if DEBUG
@@ -164,11 +183,22 @@ namespace WeaponStorage.UI
                             Log.Warning("-" + t.Label);
                         }
 #endif
-                        lst.Label(t.Label);
+                        GUI.BeginGroup(new Rect(0, 55 + i * (HEIGHT + BUFFER), r.width, HEIGHT));
+
+                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), t);
+
+                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), t.Label);
+
+                        if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
+                        {
+                            this.weaponStorage.Remove(t);
+                            break;
+                        }
+                        GUI.EndGroup();
+                        ++i;
                     }
                 }
-
-                lst.End();
+                
                 GUI.EndScrollView();
             }
             catch (Exception e)

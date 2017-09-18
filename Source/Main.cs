@@ -15,6 +15,8 @@ namespace WeaponStorage
             var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
+            UI.AssignUI.DropTexture = ContentFinder<UnityEngine.Texture2D>.Get("UI/drop", true);
+
             Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
         }
     }
