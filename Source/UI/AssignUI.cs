@@ -41,7 +41,7 @@ namespace WeaponStorage.UI
                         Pawn cPawn;
                         if (!pawnLookup.TryGetValue(c.PawnId, out cPawn) || cPawn.Dead)
                         {
-                            this.weaponStorage.StoredWeapons.AddRange(c.Weapons);
+                            this.weaponStorage.AddWeapons(c.Weapons);
                             WorldComp.AssignedWeapons.RemoveAt(i);
                         }
                     }
@@ -105,12 +105,12 @@ namespace WeaponStorage.UI
                             AssignedWeaponContainer c;
                             if (!WorldComp.TryGetAssignedWeapons(p.ThingID, out c))
                             {
-                                size = this.weaponStorage.StoredWeapons.Count + 1;
+                                size = this.weaponStorage.Count + 1;
                                 c = null;
                             }
                             else
                             {
-                                size = c.Weapons.Count + this.weaponStorage.StoredWeapons.Count + 1;
+                                size = c.Weapons.Count + this.weaponStorage.Count + 1;
                             }
 
                             this.PossibleWeapons = new List<WeaponSelected>(size);
@@ -137,7 +137,7 @@ namespace WeaponStorage.UI
 
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
-                int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.StoredWeapons.Count : 0);
+                int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.Count : 0);
                 Rect r = new Rect(0, 20, 384, (count + 1) * (HEIGHT + BUFFER));
                 scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 400, 400), scrollPosition, r);
                 
@@ -247,7 +247,7 @@ namespace WeaponStorage.UI
                 c.PawnId = p.ThingID;
             }
 
-            this.weaponStorage.StoredWeapons.AddRange(c.Weapons);
+            this.weaponStorage.AddWeapons(c.Weapons);
             c.Weapons.Clear();
 
             bool primaryFound = false;
@@ -275,7 +275,7 @@ namespace WeaponStorage.UI
                 (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
             {
                 p.equipment.Remove(primary);
-                this.weaponStorage.StoredWeapons.Add(primary);
+                this.weaponStorage.AddWeapon(primary);
             }
 
             if (c.Weapons.Count == 0)

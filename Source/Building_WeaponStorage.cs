@@ -10,7 +10,7 @@ namespace WeaponStorage
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
 
-        private List<ThingWithComps> storedWeapons = new List<ThingWithComps>();
+        private LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
         private Map CurrentMap { get; set; }
 
         static Building_WeaponStorage()
@@ -82,13 +82,13 @@ namespace WeaponStorage
         {
             try
             {
-                if (this.StoredWeapons != null)
+                if (this.storedWeapons != null)
                 {
                     foreach(ThingWithComps t in this.storedWeapons)
                     {
                         this.DropThing(t, true);
                     }
-                    this.StoredWeapons.Clear();
+                    this.storedWeapons.Clear();
                 }
             }
             catch (Exception e)
@@ -97,6 +97,18 @@ namespace WeaponStorage
                     this.GetType().Name + ".Dispose\n" +
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                if (this.storedWeapons == null)
+                {
+                    this.storedWeapons = new LinkedList<ThingWithComps>();
+                }
+                return this.storedWeapons.Count;
             }
         }
 
@@ -148,19 +160,91 @@ namespace WeaponStorage
             }
 
             base.Notify_ReceivedThing(newItem);
+
             if (!this.storedWeapons.Contains((ThingWithComps)newItem))
             {
+                // Must go after 'contains' check. In the case of 'drop on floor' Notify_ReceiveThing gets called before the weapon is removed from the list
                 if (newItem.Spawned)
                     newItem.DeSpawn();
-                this.storedWeapons.Add((ThingWithComps)newItem);
+
+                this.AddWeapon((ThingWithComps)newItem);
             }
         }
 
+        internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
+        {
+            if (weapons == null)
+                return;
+
+            foreach (ThingWithComps w in weapons)
+            {
+                this.AddWeapon(w);
+            }
+        }
+
+        internal void AddWeapon(ThingWithComps weapon)
+        {
+            if (weapon == null)
+                return;
+
+            string weaponDefName = weapon.def.defName;
+            bool found = false;
+            for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
+            {
+                string nDefName = n.Value.def.defName;
+                if (nDefName.Equals(weaponDefName))
+                {
+                    found = true;
+                    QualityCategory weaponQuality;
+                    QualityCategory currentQuality;
+                    if (weapon.TryGetQuality(out weaponQuality) && 
+                        n.Value.TryGetQuality(out currentQuality))
+                    {
+                        if ((weaponQuality > currentQuality) ||
+                            (weaponQuality == currentQuality && 
+                             weapon.HitPoints >= n.Value.HitPoints))
+                        {
+                            this.storedWeapons.AddBefore(n, weapon);
+                            return;
+                        }
+                    }
+                }
+                else if (weaponDefName.CompareTo(nDefName) < 0)
+                {
+                    this.storedWeapons.AddBefore(n, weapon);
+                    return;
+                }
+                else if (found)
+                {
+                    this.storedWeapons.AddBefore(n, weapon);
+                    return;
+                }
+            }
+            this.storedWeapons.AddLast(weapon);
+        }
+
+        public List<ThingWithComps> temp = null;
         public override void ExposeData()
         {
             base.ExposeData();
 
-            Scribe_Collections.Look(ref this.storedWeapons, "storedWeapons", LookMode.Deep, new object[0]);
+            if (Scribe.mode == LoadSaveMode.Saving)
+            {
+                this.temp = new List<ThingWithComps>(this.storedWeapons);
+            }
+
+            Scribe_Collections.Look(ref this.temp, "storedWeapons", LookMode.Deep, new object[0]);
+
+            if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
+            {
+                this.storedWeapons.Clear();
+                if (this.temp != null)
+                {
+                    this.AddWeapons(this.temp);
+                }
+                this.temp.Clear();
+                this.temp = null;
+            }
         }
 
         public override string GetInspectString()
@@ -178,12 +262,12 @@ namespace WeaponStorage
             return sb.ToString();
         }
 
-        public List<ThingWithComps> StoredWeapons
+        public IEnumerable<ThingWithComps> StoredWeapons
         {
             get
             {
                 if (this.storedWeapons == null)
-                    this.storedWeapons = new List<ThingWithComps>();
+                    this.storedWeapons = new LinkedList<ThingWithComps>();
                 return this.storedWeapons;
             }
         }
@@ -221,13 +305,12 @@ namespace WeaponStorage
                     // Do this every minute
                     if (this.stopWatch.ElapsedMilliseconds > 60000)
                     {
-                        for (int i = this.storedWeapons.Count - 1; i >= 0; --i)
+                        for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
                         {
-                            ThingWithComps t = this.storedWeapons[i];
-                            if (!this.settings.filter.Allows(t))
+                            if (!this.settings.filter.Allows(n.Value))
                             {
-                                this.DropThing(t, false);
-                                this.storedWeapons.RemoveAt(i);
+                                this.DropThing(n.Value, false);
+                                this.storedWeapons.Remove(n);
                             }
                         }
                         this.stopWatch.Reset();
@@ -278,7 +361,7 @@ namespace WeaponStorage
                         {
                             this.DropThing(t, false);
                         }
-                        this.StoredWeapons.Clear();
+                        this.storedWeapons.Clear();
                     }
                 };
             a.groupKey = groupKey + 1;

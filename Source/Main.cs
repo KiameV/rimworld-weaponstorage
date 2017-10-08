@@ -17,6 +17,7 @@ namespace WeaponStorage
 
             UI.AssignUI.DropTexture = ContentFinder<UnityEngine.Texture2D>.Get("UI/drop", true);
 
+            Log.Message("WeaponStorage: Adding Harmony Prefix to Pawn_HealthTracker.MakeDowned - not blocking");
             Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
         }
     }
@@ -44,13 +45,21 @@ namespace WeaponStorage
                             ThingWithComps t = weapons.Weapons[i];
 
                             Command_Action a = new Command_Action();
-                            a.icon = ContentFinder<UnityEngine.Texture2D>.Get(t.def.graphicData.texPath, true);
+                            try
+                            {
+                                a.icon = ContentFinder<UnityEngine.Texture2D>.Get(t.def.graphicData.texPath, true);
+                            }
+                            catch
+                            {
+                                a.icon = null;
+                            }
                             StringBuilder sb = new StringBuilder("WeaponStorage.Equip".Translate());
                             sb.Append(" ");
-                            sb.Append(t.Label);
+                            sb.Append(t.def.label);
                             a.defaultLabel = sb.ToString();
                             a.defaultDesc = "Equip this item.";
                             a.activateSound = SoundDef.Named("Click");
+                            a.groupKey = t.def.GetHashCode();
                             a.action = delegate
                             {
                                 ThingWithComps p = __instance.pawn.equipment.Primary;
@@ -95,6 +104,33 @@ namespace WeaponStorage
                     }
 
                     __result = l;
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
+    static class Patch_Pawn_HealthTracker_MakeDowned
+    {
+        static void Prefix(Pawn_HealthTracker __instance)
+        {
+            Pawn pawn = (Pawn)__instance.GetType().GetField(
+                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
+            if (pawn != null &&
+                !__instance.Downed &&
+                pawn.Faction == Faction.OfPlayer && 
+                pawn.def.race.Humanlike)
+            {
+                ThingWithComps primary = pawn.equipment.Primary;
+                if (primary != null &&
+                    (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
+                {
+                    AssignedWeaponContainer c;
+                    if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c))
+                    {
+                        c.Weapons.Add(primary);
+                        pawn.equipment.Remove(primary);
+                    }
                 }
             }
         }
