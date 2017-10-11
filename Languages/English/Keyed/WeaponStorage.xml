@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
+	<WeaponStorage>Weapon Storage</WeaponStorage>
+	
+	<WeaponStorage.ShowWeaponsWhenNotDrafted>Show Weapons When Not Drafted</WeaponStorage.ShowWeaponsWhenNotDrafted>
+
 	<WeaponStorage.AssignTo>Assign To</WeaponStorage.AssignTo>
 	
 	<WeaponStorage.AssignWeapons>Assign Weapons</WeaponStorage.AssignWeapons>

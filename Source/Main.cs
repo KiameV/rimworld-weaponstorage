@@ -27,7 +27,7 @@ namespace WeaponStorage
     {
         static void Postfix(Pawn_DraftController __instance, ref IEnumerable<Gizmo> __result)
         {
-            if (__instance.pawn.Drafted)
+            if (__instance.pawn.Drafted || Settings.ShowWeaponsWhenNotDrafted)
             {
                 AssignedWeaponContainer weapons;
                 if (WorldComp.TryGetAssignedWeapons(__instance.pawn.ThingID, out weapons))
