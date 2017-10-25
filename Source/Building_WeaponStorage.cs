@@ -55,22 +55,6 @@ namespace WeaponStorage
             }
         }
 
-        public override void Discard()
-        {
-            try
-            {
-                this.Dispose();
-                base.Discard();
-            }
-            catch (Exception e)
-            {
-                Log.Error(
-                    this.GetType().Name + ".Discard\n" +
-                    e.GetType().Name + " " + e.Message + "\n" +
-                    e.StackTrace);
-            }
-        }
-
         public override void DeSpawn()
         {
             try
