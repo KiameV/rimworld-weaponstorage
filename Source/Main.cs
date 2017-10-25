@@ -3,6 +3,7 @@ using RimWorld;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using UnityEngine;
 using Verse;
 
 namespace WeaponStorage
@@ -10,12 +11,16 @@ namespace WeaponStorage
     [StaticConstructorOnStartup]
     class Main
     {
+        public static readonly Texture2D UnknownWeaponIcon;
+
         static Main()
         {
             var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             UI.AssignUI.DropTexture = ContentFinder<UnityEngine.Texture2D>.Get("UI/drop", true);
+            UnknownWeaponIcon = ContentFinder<UnityEngine.Texture2D>.Get("UI/UnknownWeapon", true);
+            Building_WeaponStorage.Initialize();
 
             Log.Message("WeaponStorage: Adding Harmony Prefix to Pawn_HealthTracker.MakeDowned - not blocking");
             Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
@@ -45,11 +50,15 @@ namespace WeaponStorage
                             ThingWithComps t = weapons.Weapons[i];
 
                             Command_Action a = new Command_Action();
-                            try
+                            if (t.def.uiIcon != null)
+                            {
+                                a.icon = t.def.uiIcon;
+                            }
+                            else if (t.def.graphicData.texPath != null)
                             {
                                 a.icon = ContentFinder<UnityEngine.Texture2D>.Get(t.def.graphicData.texPath, true);
                             }
-                            catch
+                            else
                             {
                                 a.icon = null;
                             }
@@ -65,17 +74,18 @@ namespace WeaponStorage
                                 ThingWithComps p = __instance.pawn.equipment.Primary;
                                 if (p != null)
                                 {
-                                    if (!p.def.IsRangedWeapon && !p.def.IsMeleeWeapon)
+                                    /*if (!p.def.IsRangedWeapon && !p.def.IsMeleeWeapon)
                                     {
                                         ThingWithComps temp;
                                         __instance.pawn.equipment.TryDropEquipment(p, out temp, __instance.pawn.Position, true);
                                     }
                                     else
-                                    {
-                                        __instance.pawn.equipment.Remove(p);
-                                    }
+                                    {*/
+                                    __instance.pawn.equipment.Remove(p);
+                                    //}
                                 }
 
+                                bool added = false;
                                 for (int j = 0; j < weapons.Weapons.Count; ++j)
                                 {
                                     if (weapons.Weapons[j].thingIDNumber == t.thingIDNumber)
@@ -88,9 +98,15 @@ namespace WeaponStorage
                                         {
                                             weapons.Weapons[j] = p;
                                         }
+                                            added = true;
                                         break;
 
                                     }
+                                }
+
+                                if (!added)
+                                {
+                                    weapons.Weapons.Add(p);
                                 }
 
                                 __instance.pawn.equipment.AddEquipment(t);

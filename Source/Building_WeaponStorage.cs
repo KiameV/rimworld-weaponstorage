@@ -3,12 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using UnityEngine;
 using Verse;
 
 namespace WeaponStorage
 {
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
+        public static Texture2D assignweaponsTexture;
+        public static Texture2D emptyTexture;
 
         private LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
         private Map CurrentMap { get; set; }
@@ -28,6 +31,12 @@ namespace WeaponStorage
                 base.settings.CopyFrom(this.def.building.defaultStorageSettings);
                 base.settings.filter.SetDisallowAll();
             }
+        }
+
+        internal static void Initialize()
+        {
+            assignweaponsTexture = ContentFinder<Texture2D>.Get("UI/assignweapons", true);
+            emptyTexture = ContentFinder<Texture2D>.Get("UI/empty", true);
         }
 
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
@@ -112,7 +121,7 @@ namespace WeaponStorage
             }
         }
 
-        private Random random = null;
+        private System.Random random = null;
         private void DropThing(Thing a, bool makeForbidden = true)
         {
             try
@@ -339,7 +348,7 @@ namespace WeaponStorage
             int groupKey = 987767542;
 
             Command_Action a = new Command_Action();
-            a.icon = ContentFinder<UnityEngine.Texture2D>.Get("UI/assignweapons", true);
+            a.icon = assignweaponsTexture;
             a.defaultDesc = "WeaponStorage.AssignWeaponsDesc".Translate();
             a.defaultLabel = "WeaponStorage.AssignWeapons".Translate();
             a.activateSound = SoundDef.Named("Click");
@@ -348,7 +357,7 @@ namespace WeaponStorage
             l.Add(a);
 
             a = new Command_Action();
-            a.icon = ContentFinder<UnityEngine.Texture2D>.Get("UI/empty", true);
+            a.icon = emptyTexture;
             a.defaultDesc = "WeaponStorage.EmptyDesc".Translate();
             a.defaultLabel = "WeaponStorage.Empty".Translate();
             a.activateSound = SoundDef.Named("Click");
