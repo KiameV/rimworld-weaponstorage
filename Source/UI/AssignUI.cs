@@ -6,11 +6,23 @@ using System.Collections.Generic;
 
 namespace WeaponStorage.UI
 {
+    [StaticConstructorOnStartup]
     public class AssignUI : Window
     {
+        static AssignUI()
+        {
+            DropTexture = ContentFinder<Texture2D>.Get("UI/drop", true);
+            UnknownWeaponIcon = ContentFinder<Texture2D>.Get("UI/UnknownWeapon", true);
+            assignweaponsTexture = ContentFinder<Texture2D>.Get("UI/assignweapons", true);
+            emptyTexture = ContentFinder<Texture2D>.Get("UI/empty", true);
+        }
+
         private readonly Building_WeaponStorage weaponStorage;
 
         public static Texture2D DropTexture;
+        public static Texture2D UnknownWeaponIcon;
+        public static Texture2D assignweaponsTexture;
+        public static Texture2D emptyTexture;
 
         private Pawn selectedPawn = null;
         private List<WeaponSelected> PossibleWeapons = null;
@@ -140,7 +152,7 @@ namespace WeaponStorage.UI
                 int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.Count : 0);
                 Rect r = new Rect(0, 20, 384, (count + 1) * (HEIGHT + BUFFER));
                 scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 400, 400), scrollPosition, r);
-                
+
                 if (this.selectedPawn != null && this.PossibleWeapons != null)
                 {
                     for (int i = 0; i < this.PossibleWeapons.Count; ++i)
@@ -198,7 +210,7 @@ namespace WeaponStorage.UI
                         ++i;
                     }
                 }
-                
+
                 GUI.EndScrollView();
             }
             catch (Exception e)

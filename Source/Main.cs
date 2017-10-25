@@ -5,22 +5,17 @@ using System.Reflection;
 using System.Text;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 
 namespace WeaponStorage
 {
     [StaticConstructorOnStartup]
     class Main
     {
-        public static readonly Texture2D UnknownWeaponIcon;
-
         static Main()
         {
             var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            UI.AssignUI.DropTexture = ContentFinder<UnityEngine.Texture2D>.Get("UI/drop", true);
-            UnknownWeaponIcon = ContentFinder<UnityEngine.Texture2D>.Get("UI/UnknownWeapon", true);
-            Building_WeaponStorage.Initialize();
 
             Log.Message("WeaponStorage: Adding Harmony Prefix to Pawn_HealthTracker.MakeDowned - not blocking");
             Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
@@ -146,6 +141,46 @@ namespace WeaponStorage
                     {
                         c.Weapons.Add(primary);
                         pawn.equipment.Remove(primary);
+                    }
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ReservationManager), "CanReserve")]
+    static class Patch_ReservationManager_CanReserve
+    {
+        private static FieldInfo mapFI = null;
+        static void Postfix(ref bool __result, ReservationManager __instance, Pawn claimant, LocalTargetInfo target, int maxPawns, int stackCount, ReservationLayerDef layer, bool ignoreOtherReservations)
+        {
+            if (mapFI == null)
+            {
+                mapFI = typeof(ReservationManager).GetField("map", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+
+#if DEBUG_RESERVE
+            Log.Warning("\nCanReserve original result: " + __result);
+#endif
+            if (!__result && (target.Thing == null || target.GetType() == typeof(Building_WeaponStorage)))
+            {
+                IEnumerable<Thing> things = ((Map)mapFI.GetValue(__instance))?.thingGrid.ThingsAt(target.Cell);
+                if (things != null)
+                {
+#if DEBUG_RESERVE
+                    Log.Warning("CanReserve - Found things");
+#endif
+                    foreach (Thing t in things)
+                    {
+#if DEBUG_RESERVE
+                        Log.Warning("CanReserve - def " + t.def.defName);
+#endif
+                        if (t.GetType() == typeof(Building_WeaponStorage))
+                        {
+#if DEBUG_RESERVE
+                            Log.Warning("CanReserve is now true\n");
+#endif
+                            __result = true;
+                        }
                     }
                 }
             }
