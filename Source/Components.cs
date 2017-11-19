@@ -7,6 +7,7 @@ namespace WeaponStorage
     class WorldComp : WorldComponent
     {
         public static List<AssignedWeaponContainer> AssignedWeapons = new List<AssignedWeaponContainer>();
+        private static List<Building_WeaponStorage> weaponStorages = new List<Building_WeaponStorage>();
 
         public WorldComp(World world) : base(world)
         {
@@ -31,6 +32,27 @@ namespace WeaponStorage
             {
                 c.Weapons = assignedWeapons.Weapons;
             }
+        }
+
+        public static void Add(Building_WeaponStorage ws)
+        {
+            if (!weaponStorages.Contains(ws))
+            {
+                weaponStorages.Add(ws);
+            }
+        }
+
+        public static IEnumerable<Building_WeaponStorage> WeaponStorages
+        {
+            get
+            {
+                return weaponStorages;
+            }
+        }
+
+        public static void Remove(Building_WeaponStorage ws)
+        {
+            weaponStorages.Remove(ws);
         }
 
         public static bool TryGetAssignedWeapons(string pawnId, out AssignedWeaponContainer assignedWeaponContainer)

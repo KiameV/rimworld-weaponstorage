@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using UnityEngine;
 using Verse;
 
 namespace WeaponStorage
@@ -11,11 +10,11 @@ namespace WeaponStorage
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
         private LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
+
         private Map CurrentMap { get; set; }
 
-        static Building_WeaponStorage()
-        {
-        }
+        private bool includeInTradeDeals = true;
+        public bool IncludeInTradeDeals { get { return this.includeInTradeDeals; } }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
@@ -28,6 +27,8 @@ namespace WeaponStorage
                 base.settings.CopyFrom(this.def.building.defaultStorageSettings);
                 base.settings.filter.SetDisallowAll();
             }
+
+            WorldComp.Add(this);
         }
 
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
@@ -82,6 +83,7 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+            WorldComp.Remove(this);
         }
 
         public int Count
@@ -166,10 +168,22 @@ namespace WeaponStorage
             }
         }
 
-        internal void AddWeapon(ThingWithComps weapon)
+        internal bool AddWeapon(ThingWithComps weapon)
         {
-            if (weapon == null)
-                return;
+            if (weapon == null || !base.settings.AllowedToAccept(weapon))
+            {
+                return false;
+            }
+
+            if (weapon != null && weapon.Spawned)
+            {
+                weapon.DeSpawn();
+            }
+
+            if (this.storedWeapons.Contains(weapon))
+            {
+                return true;
+            }
 
             string weaponDefName = weapon.def.defName;
             bool found = false;
@@ -189,22 +203,90 @@ namespace WeaponStorage
                              weapon.HitPoints >= n.Value.HitPoints))
                         {
                             this.storedWeapons.AddBefore(n, weapon);
-                            return;
+                            return true;
                         }
                     }
                 }
                 else if (weaponDefName.CompareTo(nDefName) < 0)
                 {
                     this.storedWeapons.AddBefore(n, weapon);
-                    return;
+                    return true;
                 }
                 else if (found)
                 {
                     this.storedWeapons.AddBefore(n, weapon);
-                    return;
+                    return true;
                 }
             }
             this.storedWeapons.AddLast(weapon);
+            return true;
+        }
+
+        public void Empty()
+        {
+            foreach (ThingWithComps twc in storedWeapons)
+            {
+                this.DropThing(twc, false);
+            }
+            this.storedWeapons.Clear();
+        }
+
+        public void Empty<T>(out List<T> contained) where T : Thing
+        {
+            contained = new List<T>(this.storedWeapons.Count);
+            foreach (ThingWithComps twc in storedWeapons)
+            {
+                this.DropThing(twc, false);
+                contained.Add(twc as T);
+            }
+            this.storedWeapons.Clear();
+        }
+
+        internal void ReclaimWeapons()
+        {
+            IEnumerable<ThingWithComps> l = 
+                BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
+            foreach (ThingWithComps t in l)
+            {
+                this.AddWeapon(t);
+            }
+        }
+        public void HandleThingsOnTop()
+        {
+#if TRADE_DEBUG
+            Log.Warning("Start ChangeDresser.HandleThingsOnTop for " + this.Label + " Spawned: " + this.Spawned);
+#endif
+            if (this.Spawned)
+            {
+                foreach (Thing t in base.Map.thingGrid.ThingsAt(this.Position))
+                {
+#if TRADE_DEBUG
+                    Log.Warning("ChangeDresser.HandleThingsOnTop - Thing " + t?.Label);
+#endif
+                    if (t != null && t != this)
+                    {
+                        if (!(t is ThingWithComps && this.AddWeapon((ThingWithComps)t)))
+                        {
+                            if (t.Spawned)
+                            {
+                                IntVec3 p = t.Position;
+                                p.x = p.x + 1;
+                                t.Position = p;
+                                Log.Warning("Moving " + t.Label);
+                            }
+                        }
+                    }
+                }
+            }
+#if TRADE_DEBUG
+            Log.Warning("End ChangeDresser.HandleThingsOnTop");
+#endif
+        }
+
+        public override void TickRare()
+        {
+            base.TickRare();
+            this.HandleThingsOnTop();
         }
 
         public List<ThingWithComps> temp = null;
@@ -235,7 +317,8 @@ namespace WeaponStorage
         {
             this.Tick();
             StringBuilder sb = new StringBuilder(base.GetInspectString());
-            sb.Append(Environment.NewLine);
+            if (sb.Length > 0)
+                sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.StoragePriority".Translate());
             sb.Append(": ");
             sb.Append(("StoragePriority" + base.settings.Priority).Translate());
@@ -243,6 +326,10 @@ namespace WeaponStorage
             sb.Append("WeaponStorage.Count".Translate());
             sb.Append(": ");
             sb.Append(this.storedWeapons.Count);
+            sb.Append(Environment.NewLine);
+            sb.Append("WeaponStorage.IncludeInTradeDeals".Translate());
+            sb.Append(": ");
+            sb.Append(this.includeInTradeDeals.ToString());
             return sb.ToString();
         }
 
@@ -320,7 +407,7 @@ namespace WeaponStorage
             else
                 l = new List<Gizmo>(1);
 
-            int groupKey = 987767542;
+            int groupKey = "WeaponStorage".GetHashCode();
 
             Command_Action a = new Command_Action();
             a.icon = UI.AssignUI.assignweaponsTexture;
@@ -328,7 +415,7 @@ namespace WeaponStorage
             a.defaultLabel = "WeaponStorage.AssignWeapons".Translate();
             a.activateSound = SoundDef.Named("Click");
             a.action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); };
-            a.groupKey = groupKey;
+            ++groupKey;
             l.Add(a);
 
             a = new Command_Action();
@@ -339,16 +426,44 @@ namespace WeaponStorage
             a.action =
                 delegate
                 {
-                    if (this.StoredWeapons != null)
-                    {
-                        foreach (ThingWithComps t in this.storedWeapons)
-                        {
-                            this.DropThing(t, false);
-                        }
-                        this.storedWeapons.Clear();
-                    }
+                    this.Empty();
                 };
-            a.groupKey = groupKey + 1;
+            ++groupKey;
+            l.Add(a);
+
+            a = new Command_Action();
+            a.icon = UI.AssignUI.collectTexture;
+            a.defaultDesc = "WeaponStorage.CollectDesc".Translate();
+            a.defaultLabel = "WeaponStorage.Collect".Translate();
+            a.activateSound = SoundDef.Named("Click");
+            a.action =
+                delegate
+                {
+                    this.ReclaimWeapons();
+                };
+            a.groupKey = groupKey;
+            ++groupKey;
+            l.Add(a);
+
+            a = new Command_Action();
+            if (this.includeInTradeDeals)
+            {
+                a.icon = UI.AssignUI.yesSellTexture;
+            }
+            else
+            {
+                a.icon = UI.AssignUI.noSellTexture;
+            }
+            a.defaultDesc = "WeaponStorage.IncludeInTradeDealsDesc".Translate();
+            a.defaultLabel = "WeaponStorage.IncludeInTradeDeals".Translate();
+            a.activateSound = SoundDef.Named("Click");
+            a.action =
+                delegate
+                {
+                    this.includeInTradeDeals = !this.includeInTradeDeals;
+                };
+            a.groupKey = groupKey;
+            ++groupKey;
             l.Add(a);
 
             return SaveStorageSettingsUtil.SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);

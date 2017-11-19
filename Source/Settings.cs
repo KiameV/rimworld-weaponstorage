@@ -24,6 +24,7 @@ namespace WeaponStorage
     public class Settings : ModSettings
     {
         public static bool ShowWeaponsWhenNotDrafted = false;
+        public static int RepairAttachmentDistance = 6;
 
         public override void ExposeData()
         {

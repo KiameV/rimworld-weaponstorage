@@ -11,9 +11,17 @@
 	
 	<WeaponStorage.Empty>Empty</WeaponStorage.Empty>
 	<WeaponStorage.EmptyDesc>Place all the stored weapons on the ground.</WeaponStorage.EmptyDesc>
+	<WeaponStorage.Collect>Collect</WeaponStorage.Collect>
+	<WeaponStorage.CollectDesc>Collect the weapons around the weapon storage and store it.</WeaponStorage.CollectDesc>
+	
+	<WeaponStorage.IncludeInTradeDeals>Sell Weapons</WeaponStorage.IncludeInTradeDeals>
+	<WeaponStorage.IncludeInTradeDealsDesc>Toggle whether to include the stored weapons in trade deals.</WeaponStorage.IncludeInTradeDealsDesc>
 	
 	<WeaponStorage.StoragePriority>Priority</WeaponStorage.StoragePriority>
 	<WeaponStorage.Count>Stored Weapons</WeaponStorage.Count>
 	
 	<WeaponStorage.Equip>Equip</WeaponStorage.Equip>
+	
+	<WeaponStorage.AttachedWeaponStorages>Attached Weapon Storages</WeaponStorage.AttachedWeaponStorages>
+	<WeaponStorage.IsRepairing>Is Repairing</WeaponStorage.IsRepairing>
 </LanguageData>

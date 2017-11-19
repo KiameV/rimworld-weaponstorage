@@ -1,5 +1,6 @@
 ﻿using Harmony;
 using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -183,6 +184,91 @@ namespace WeaponStorage
                         }
                     }
                 }
+            }
+        }
+    }
+
+    static class TradeUtil
+    {
+        public static void EmptyWeaponStorages()
+        {
+            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
+            {
+                if (ws.Map != null && ws.Spawned && ws.IncludeInTradeDeals)
+                {
+                    ws.Empty();
+                }
+            }
+        }
+
+        public static IEnumerable<T> EmptyWeaponStorages<T>(Map map) where T : Thing
+        {
+            List<T> l = new List<T>();
+            List<T> contained;
+            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
+            {
+                if (ws.Map == map && ws.Spawned && ws.IncludeInTradeDeals)
+                {
+                    ws.Empty(out contained);
+                    l.AddRange(contained);
+                }
+            }
+            return l;
+        }
+
+        public static void ReclaimApparel()
+        {
+            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
+            {
+                if (ws.Map != null && ws.Spawned)
+                {
+                    ws.ReclaimWeapons();
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_TraderTracker), "ColonyThingsWillingToBuy")]
+    static class Patch_TradeShip_ColonyThingsWillingToBuy
+    {
+        // Before a caravan trade
+        static void Postfix(ref IEnumerable<Thing> __result, Pawn playerNegotiator)
+        {
+            if (playerNegotiator != null && playerNegotiator.Map != null)
+            {
+                List<Thing> result = new List<Thing>(__result);
+                result.AddRange(TradeUtil.EmptyWeaponStorages<Thing>(playerNegotiator.Map));
+                __result = result;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(TradeShip), "ColonyThingsWillingToBuy")]
+    static class Patch_PassingShip_TryOpenComms
+    {
+        // Before an orbital trade
+        static void Postfix(ref IEnumerable<Thing> __result, Pawn playerNegotiator)
+        {
+            if (playerNegotiator != null && playerNegotiator.Map != null)
+            {
+                List<Thing> result = new List<Thing>(__result);
+                result.AddRange(TradeUtil.EmptyWeaponStorages<Thing>(playerNegotiator.Map));
+                __result = result;
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Window), "PreClose")]
+    static class Patch_Window_PreClose
+    {
+        // Before closing any window
+        static void Postfix(Window __instance)
+        {
+            Type type = __instance.GetType();
+            if (type == typeof(Dialog_Trade))
+            // || type == typeof(Dialog_LoadTransporters))
+            {
+                TradeUtil.ReclaimApparel();
             }
         }
     }

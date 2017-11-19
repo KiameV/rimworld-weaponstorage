@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
 
-  <ThingDef ParentName="FurnitureBase">
-    <defName>WeaponStorage</defName>
-    <label>weapon storage</label>
-    <description>Store weapons for use later.</description>
-    <thingClass>WeaponStorage.Building_WeaponStorage</thingClass>
-    <graphicData>
-      <texPath>Furniture/WeaponStorage</texPath>
+	<ThingDef ParentName="FurnitureBase">
+		<defName>WeaponStorage</defName>
+		<label>weapon storage</label>
+		<description>Store weapons for use later.</description>
+		<thingClass>WeaponStorage.Building_WeaponStorage</thingClass>
+		<graphicData>
+			<texPath>Furniture/WeaponStorage</texPath>
 			<graphicClass>Graphic_Multi</graphicClass>
 			<drawSize>(1,1)</drawSize>
 			<damageData>
@@ -48,13 +48,16 @@
 		</placeWorkers>
 		<comps>
 			<li Class="CompProperties_Facility">
-				<statOffsets>
-					<Comfort>0.05</Comfort>
-				</statOffsets>
 				<maxSimultaneous>1</maxSimultaneous>
 				<maxDistance>6</maxDistance>
 			</li>
-		</comps><inspectorTabs>
+			<li Class="CompProperties_AffectedByFacilities">
+				<linkableFacilities>
+					<li>RepairWeaponStorage</li>
+				</linkableFacilities>
+			</li>
+		</comps>
+		<inspectorTabs>
 			<li>ITab_Storage</li>
 		</inspectorTabs>
 		<building>
@@ -79,7 +82,78 @@
 		<hasInteractionCell>True</hasInteractionCell>
 		<interactionCellOffset>(0,0,1)</interactionCellOffset>
 		<designationCategory>Furniture</designationCategory>
-		<!--<surfaceType>None</surfaceType>
-		<tickerType>Long</tickerType>-->
-  </ThingDef>
+		<tickerType>Rare</tickerType>
+	</ThingDef>
+
+	<ThingDef ParentName="ArtableFurnitureBase">
+		<defName>RepairWeaponStorage</defName>
+		<label>repair attachment</label>
+		<description>An attachment to weapon storages which can repair the stored weapons.</description>
+		<thingClass>WeaponStorage.Building_RepairWeaponStorage</thingClass>
+		<graphicData>
+			<texPath>Furniture/RepairWeaponStorage</texPath>
+			<graphicClass>Graphic_Multi</graphicClass>
+			<drawSize>(1,1)</drawSize>
+			<damageData>
+				<cornerTL>Damage/Corner</cornerTL>
+				<cornerTR>Damage/Corner</cornerTR>
+				<cornerBL>Damage/Corner</cornerBL>
+				<cornerBR>Damage/Corner</cornerBR>
+			</damageData>
+		</graphicData>
+		<altitudeLayer>FloorEmplacement</altitudeLayer>
+		<passability>PassThroughOnly</passability>
+		<fillPercent>0.4</fillPercent>
+		<castEdgeShadows>true</castEdgeShadows>
+		<stuffCategories>
+			<li>Metallic</li>
+			<li>Woody</li>
+			<li>Stony</li>
+		</stuffCategories>
+		<costStuffCount>20</costStuffCount>
+		<costList>
+			<Component>6</Component>
+			<Steel>250</Steel>
+		</costList>
+		<defaultPlacingRot>South</defaultPlacingRot>
+		<statBases>
+			<MaxHitPoints>100</MaxHitPoints>
+			<Mass>30</Mass>
+			<WorkToBuild>20000</WorkToBuild>
+			<Flammability>1.0</Flammability>
+			<Beauty>-10</Beauty>
+		</statBases>
+		<size>(1,1)</size>
+		<designationHotKey>Misc12</designationHotKey>
+		<staticSunShadowHeight>0.5</staticSunShadowHeight>
+		<surfaceType>Item</surfaceType>
+		<canOverlapZones>false</canOverlapZones>
+		<placeWorkers>
+			<li>PlaceWorker_ShowFacilitiesConnections</li>
+		</placeWorkers>
+		<comps>
+			<li Class="CompProperties_Breakdownable"/>
+			<li Class="CompProperties_Flickable"/>
+			<li Class="CompProperties_Power">
+				<compClass>CompPowerTrader</compClass>
+				<basePowerConsumption>1000</basePowerConsumption>
+				<shortCircuitInRain>true</shortCircuitInRain>
+				<startElectricalFires>true</startElectricalFires>
+			</li>
+			<li Class="CompProperties_Facility">
+				<maxSimultaneous>1</maxSimultaneous>
+				<maxDistance>6</maxDistance>
+			</li>
+		</comps>
+		<building>
+			<ignoreStoredThingsBeauty>false</ignoreStoredThingsBeauty>
+		</building>
+		<hasInteractionCell>false</hasInteractionCell>
+		<designationCategory>Misc</designationCategory>
+		<tickerType>Long</tickerType>
+		<researchPrerequisites>
+			<li>Mending</li>
+			<li>MultiAnalyzer</li>
+		</researchPrerequisites>
+	</ThingDef>
 </Defs>

@@ -15,6 +15,9 @@ namespace WeaponStorage.UI
             UnknownWeaponIcon = ContentFinder<Texture2D>.Get("UI/UnknownWeapon", true);
             assignweaponsTexture = ContentFinder<Texture2D>.Get("UI/assignweapons", true);
             emptyTexture = ContentFinder<Texture2D>.Get("UI/empty", true);
+            collectTexture = ContentFinder<Texture2D>.Get("UI/collect", true);
+            yesSellTexture = ContentFinder<Texture2D>.Get("UI/yessell", true);
+            noSellTexture = ContentFinder<Texture2D>.Get("UI/nosell", true);
         }
 
         private readonly Building_WeaponStorage weaponStorage;
@@ -23,6 +26,9 @@ namespace WeaponStorage.UI
         public static Texture2D UnknownWeaponIcon;
         public static Texture2D assignweaponsTexture;
         public static Texture2D emptyTexture;
+        public static Texture2D collectTexture;
+        public static Texture2D yesSellTexture;
+        public static Texture2D noSellTexture;
 
         private Pawn selectedPawn = null;
         private List<WeaponSelected> PossibleWeapons = null;
@@ -38,7 +44,7 @@ namespace WeaponStorage.UI
                 {
                     selectablePawns = new List<Pawn>();
                     Dictionary<string, Pawn> pawnLookup = new Dictionary<string, Pawn>();
-                    foreach (Pawn p in PawnsFinder.AllMapsAndWorld_Alive)
+                    foreach (Pawn p in PawnsFinder.AllMapsWorldAndTemporary_Alive)
                     {
                         if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
                         {

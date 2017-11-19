@@ -50,11 +50,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuildingUtil.cs" />
     <Compile Include="Building_WeaponStorage.cs" />
     <Compile Include="Components.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="AssignedWeaponContainer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Building_RepairWeaponStorage.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="UI\AssignUI.cs" />
     <Compile Include="UI\WeaponSelected.cs" />
