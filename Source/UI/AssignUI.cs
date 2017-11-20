@@ -240,7 +240,7 @@ namespace WeaponStorage.UI
             {
                 String msg = this.GetType().Name + " closed due to: " + e.GetType().Name + " " + e.Message;
                 Log.Error(msg);
-                Messages.Message(msg, MessageTypeDefOf.NegativeEvent);
+                Messages.Message(msg, MessageSound.Negative);
                 base.Close();
             }
             finally

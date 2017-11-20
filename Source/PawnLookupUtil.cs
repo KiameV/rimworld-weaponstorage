@@ -28,7 +28,7 @@ namespace WeaponStorage
         public static void Initialize()
         {
             pawnLookup = new Dictionary<string, Pawn>();
-            foreach (Pawn p in PawnsFinder.AllMapsWorldAndTemporary_Alive)
+            foreach (Pawn p in PawnsFinder.AllMapsAndWorld_Alive)
             {
                 if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
                 {

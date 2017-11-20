@@ -90,9 +90,9 @@ namespace WeaponStorage
             this.AttachedWeaponStorages.Clear();
         }
 
-        public override void Discard(bool silentlyRemoveReferences = false)
+        public override void Discard()
         {
-            base.Discard(silentlyRemoveReferences);
+            base.Discard();
             this.PlaceWeaponInStorage();
             this.AttachedWeaponStorages.Clear();
         }
