@@ -35,8 +35,8 @@ namespace WeaponStorage.UI
 
         private Vector2 scrollPosition = new Vector2(0, 0);
 
-        private List<Pawn> selectablePawns = null;
-        private List<Pawn> PlayerPawns
+        /*private static List<Pawn> selectablePawns = null;
+        public static List<Pawn> PlayerPawns
         {
             get
             {
@@ -66,7 +66,7 @@ namespace WeaponStorage.UI
                 }
                 return selectablePawns;
             }
-        }
+        }*/
 
         public AssignUI(Building_WeaponStorage weaponStorage)
         {
@@ -79,6 +79,9 @@ namespace WeaponStorage.UI
             this.doCloseX = true;
             this.absorbInputAroundWindow = true;
             this.forcePause = true;
+
+            PawnLookupUtil.Initialize();
+            CleanupAssignedWeapons();
         }
 
         public override Vector2 InitialSize
@@ -86,6 +89,20 @@ namespace WeaponStorage.UI
             get
             {
                 return new Vector2(650f, 600f);
+            }
+        }
+
+        private void CleanupAssignedWeapons()
+        {
+            for (int i = WorldComp.AssignedWeapons.Count - 1; i >= 0; --i)
+            {
+                AssignedWeaponContainer c = WorldComp.AssignedWeapons[i];
+                Pawn cPawn;
+                if (!PawnLookupUtil.TryGetPawn(c.PawnId, out cPawn) || cPawn.Dead)
+                {
+                    this.weaponStorage.AddWeapons(c.Weapons);
+                    WorldComp.AssignedWeapons.RemoveAt(i);
+                }
             }
         }
 
@@ -106,7 +123,7 @@ namespace WeaponStorage.UI
                 if (Widgets.ButtonText(new Rect(175, 0, 150, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
-                    foreach (Pawn p in PlayerPawns)
+                    foreach (Pawn p in PawnLookupUtil.PlayerPawns)
                     {
                         options.Add(new FloatMenuOption(p.Name.ToStringShort, delegate
                         {
@@ -244,11 +261,7 @@ namespace WeaponStorage.UI
             base.PostClose();
             this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
 
-            if (this.selectablePawns != null)
-            {
-                this.selectablePawns.Clear();
-                this.selectablePawns = null;
-            }
+            PawnLookupUtil.Clear();
         }
 
         private void SetAssignedWeapons(Pawn p, List<WeaponSelected> weapons)

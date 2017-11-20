@@ -55,6 +55,7 @@
     <Compile Include="Components.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="AssignedWeaponContainer.cs" />
+    <Compile Include="PawnLookupUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Building_RepairWeaponStorage.cs" />
     <Compile Include="Settings.cs" />

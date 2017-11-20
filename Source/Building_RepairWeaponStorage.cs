@@ -15,6 +15,7 @@ namespace WeaponStorage
         private LinkedList<Building_WeaponStorage> AttachedWeaponStorages = new LinkedList<Building_WeaponStorage>();
         public CompPowerTrader compPowerTrader;
 
+        private Pawn AssignedTo = null;
         private ThingWithComps BeingRepaird = null;
         private Map CurrentMap;
         //private int rareTickCount = 0;
@@ -32,9 +33,19 @@ namespace WeaponStorage
             sb.Append("WeaponStorage.IsRepairing".Translate());
             sb.Append(": ");
             if (BeingRepaird == null)
+            {
                 sb.Append(Boolean.FalseString);
+                if (this.AssignedTo != null)
+                {
+                    sb.Append(" (");
+                    sb.Append(this.AssignedTo.Name.ToStringShort);
+                    sb.Append(")");
+                }
+            }
             else
+            {
                 sb.Append(BeingRepaird.Label);
+            }
             return sb.ToString();
         }
 
@@ -102,6 +113,15 @@ namespace WeaponStorage
                 {
                     this.PlaceWeaponInStorage();
                 }
+            }
+            else if (
+                this.AssignedTo != null && 
+                this.AssignedTo.Drafted && 
+                this.AssignedTo.equipment.Primary == this.BeingRepaird)
+            {
+                // The weapon is in use
+                this.AssignedTo = null;
+                this.BeingRepaird = this.FindWeaponToRepair();
             }
             else if (this.BeingRepaird == null)
             {
@@ -186,18 +206,59 @@ namespace WeaponStorage
 
         private ThingWithComps FindWeaponToRepair()
         {
-            this.OrderAttachedWeaponStorages();
-            for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
+            try
             {
-                Building_WeaponStorage d = n.Value;
-                foreach (ThingWithComps twc in d.StoredWeapons)
+                PawnLookupUtil.Initialize();
+                // Try to repair equiped weapons
+                foreach (Pawn p in PawnLookupUtil.PlayerPawns)
                 {
-                    if (twc.HitPoints < twc.MaxHitPoints)
+                    if (!p.Drafted)
                     {
-                        d.RemoveNoDrop(twc);
-                        return twc;
+                        ThingWithComps t = p.equipment.Primary;
+                        if (t != null && (t.def.IsMeleeWeapon || t.def.IsRangedWeapon))
+                        {
+                            if (t.HitPoints < t.MaxHitPoints)
+                            {
+                                this.AssignedTo = p;
+                                return t;
+                            }
+                        }
                     }
                 }
+
+                // Try to repair assigned weapons
+                foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons)
+                {
+                    foreach (ThingWithComps w in c.Weapons)
+                    {
+                        if (w.HitPoints < w.MaxHitPoints)
+                        {
+                            if (PawnLookupUtil.TryGetPawn(c.PawnId, out this.AssignedTo))
+                            {
+                                return w;
+                            }
+                        }
+                    }
+                }
+
+                // Find weapons in storage
+                this.OrderAttachedWeaponStorages();
+                for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
+                {
+                    Building_WeaponStorage d = n.Value;
+                    foreach (ThingWithComps twc in d.StoredWeapons)
+                    {
+                        if (twc.HitPoints < twc.MaxHitPoints)
+                        {
+                            d.RemoveNoDrop(twc);
+                            return twc;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                PawnLookupUtil.Clear();
             }
             return null;
         }
@@ -206,6 +267,13 @@ namespace WeaponStorage
         {
             if (this.BeingRepaird == null)
             {
+                return;
+            }
+
+            if (this.AssignedTo != null)
+            {
+                this.BeingRepaird = null;
+                this.AssignedTo = null;
                 return;
             }
 
@@ -234,6 +302,11 @@ namespace WeaponStorage
         public override void ExposeData()
         {
             base.ExposeData();
+
+            if (Scribe.mode == LoadSaveMode.Saving && this.AssignedTo != null)
+            {
+                return;
+            }
 
             Scribe_Deep.Look(ref this.BeingRepaird, "beingRepaired", new object[0]);
         }
