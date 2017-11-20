@@ -231,17 +231,6 @@ namespace WeaponStorage
             this.storedWeapons.Clear();
         }
 
-        public void Empty<T>(out List<T> contained) where T : Thing
-        {
-            contained = new List<T>(this.storedWeapons.Count);
-            foreach (ThingWithComps twc in storedWeapons)
-            {
-                this.DropThing(twc, false);
-                contained.Add(twc as T);
-            }
-            this.storedWeapons.Clear();
-        }
-
         internal void ReclaimWeapons()
         {
             IEnumerable<ThingWithComps> l = 

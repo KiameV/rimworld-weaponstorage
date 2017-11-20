@@ -201,22 +201,24 @@ namespace WeaponStorage
             }
         }
 
-        public static IEnumerable<T> EmptyWeaponStorages<T>(Map map) where T : Thing
+        public static IEnumerable<Thing> EmptyWeaponStorages(Map map)
         {
-            List<T> l = new List<T>();
-            List<T> contained;
+            List<Thing> l = new List<Thing>();
             foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
             {
                 if (ws.Map == map && ws.Spawned && ws.IncludeInTradeDeals)
                 {
-                    ws.Empty(out contained);
-                    l.AddRange(contained);
+                    foreach (ThingWithComps t in ws.StoredWeapons)
+                    {
+                        l.Add(t);
+                    }
+                    ws.Empty();
                 }
             }
             return l;
         }
 
-        public static void ReclaimApparel()
+        public static void ReclaimWeapons()
         {
             foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
             {
@@ -237,7 +239,7 @@ namespace WeaponStorage
             if (playerNegotiator != null && playerNegotiator.Map != null)
             {
                 List<Thing> result = new List<Thing>(__result);
-                result.AddRange(TradeUtil.EmptyWeaponStorages<Thing>(playerNegotiator.Map));
+                result.AddRange(TradeUtil.EmptyWeaponStorages(playerNegotiator.Map));
                 __result = result;
             }
         }
@@ -252,7 +254,7 @@ namespace WeaponStorage
             if (playerNegotiator != null && playerNegotiator.Map != null)
             {
                 List<Thing> result = new List<Thing>(__result);
-                result.AddRange(TradeUtil.EmptyWeaponStorages<Thing>(playerNegotiator.Map));
+                result.AddRange(TradeUtil.EmptyWeaponStorages(playerNegotiator.Map));
                 __result = result;
             }
         }
@@ -268,7 +270,7 @@ namespace WeaponStorage
             if (type == typeof(Dialog_Trade))
             // || type == typeof(Dialog_LoadTransporters))
             {
-                TradeUtil.ReclaimApparel();
+                TradeUtil.ReclaimWeapons();
             }
         }
     }
