@@ -20,6 +20,10 @@ namespace WeaponStorage
 
             Log.Message("WeaponStorage: Adding Harmony Prefix to Pawn_HealthTracker.MakeDowned - not blocking");
             Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
+            Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_TraderTracker.ColonyThingsWillingToBuy");
+            Log.Message("WeaponStorage: Adding Harmony Postfix to TradeShip.ColonyThingsWillingToBuy");
+            Log.Message("WeaponStorage: Adding Harmony Postfix to Window.PreClose");
+            Log.Message("WeaponStorage: Adding Harmony Postfix to ReservationManager.CanReserve");
         }
     }
 
@@ -190,21 +194,10 @@ namespace WeaponStorage
 
     static class TradeUtil
     {
-        public static void EmptyWeaponStorages()
-        {
-            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
-            {
-                if (ws.Map != null && ws.Spawned && ws.IncludeInTradeDeals)
-                {
-                    ws.Empty();
-                }
-            }
-        }
-
         public static IEnumerable<Thing> EmptyWeaponStorages(Map map)
         {
             List<Thing> l = new List<Thing>();
-            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
+            foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
             {
                 if (ws.Map == map && ws.Spawned && ws.IncludeInTradeDeals)
                 {
@@ -220,7 +213,7 @@ namespace WeaponStorage
 
         public static void ReclaimWeapons()
         {
-            foreach (Building_WeaponStorage ws in WorldComp.WeaponStorages)
+            foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
             {
                 if (ws.Map != null && ws.Spawned)
                 {

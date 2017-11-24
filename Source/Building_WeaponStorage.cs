@@ -1,7 +1,7 @@
 ﻿using RimWorld;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Verse;
 
@@ -27,8 +27,16 @@ namespace WeaponStorage
                 base.settings.CopyFrom(this.def.building.defaultStorageSettings);
                 base.settings.filter.SetDisallowAll();
             }
-
+            this.UpdatePreviousStorageFilter();
             WorldComp.Add(this);
+
+            foreach (Building_RepairWeaponStorage r in BuildingUtil.FindThingsOfTypeNextTo<Building_RepairWeaponStorage>(base.Map, base.Position, Settings.RepairAttachmentDistance))
+            {
+#if DEBUG_REPAIR
+                Log.Warning("Adding Dresser " + this.Label + " to " + r.Label);
+#endif
+                r.AddWeaponStorage(this);
+            }
         }
 
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
@@ -69,7 +77,7 @@ namespace WeaponStorage
             {
                 if (this.storedWeapons != null)
                 {
-                    foreach(ThingWithComps t in this.storedWeapons)
+                    foreach (ThingWithComps t in this.storedWeapons)
                     {
                         this.DropThing(t, true);
                     }
@@ -83,7 +91,15 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+
             WorldComp.Remove(this);
+            foreach (Building_RepairWeaponStorage r in BuildingUtil.FindThingsOfTypeNextTo<Building_RepairWeaponStorage>(base.Map, base.Position, Settings.RepairAttachmentDistance))
+            {
+#if DEBUG_REPAIR
+                Log.Warning("Removing Dresser " + this.Label + " to " + r.Label);
+#endif
+                r.RemoveWeaponStorage(this);
+            }
         }
 
         public int Count
@@ -98,43 +114,36 @@ namespace WeaponStorage
             }
         }
 
-        private System.Random random = null;
-        private void DropThing(Thing a, bool makeForbidden = true)
+        private void DropThing(Thing t, bool makeForbidden = true)
+        {
+            BuildingUtil.DropThing(t, this, this.CurrentMap, makeForbidden);
+        }
+
+        private void DropWeapons<T>(IEnumerable<T> things, bool makeForbidden = true) where T : Thing
         {
             try
             {
-                Thing t;
-                if (!a.Spawned)
+                if (things != null)
                 {
-                    GenThing.TryDropAndSetForbidden(a, base.Position, this.CurrentMap, ThingPlaceMode.Near, out t, makeForbidden);
-                    if (!a.Spawned)
+                    foreach (T t in things)
                     {
-                        GenPlace.TryPlaceThing(a, base.Position, this.CurrentMap, ThingPlaceMode.Near);
+                        this.DropThing(t, makeForbidden);
                     }
-                }
-                if (a.Position.Equals(base.Position))
-                {
-                    IntVec3 pos = a.Position;
-                    if (this.random == null)
-                        this.random = new System.Random();
-                    int dir = this.random.Next(2);
-                    int amount = this.random.Next(2);
-                    if (amount == 0)
-                        amount = -1;
-                    if (dir == 0)
-                        pos.x = pos.x + amount;
-                    else
-                        pos.z = pos.z + amount;
-                    a.Position = pos;
                 }
             }
             catch (Exception e)
             {
                 Log.Error(
-                    this.GetType().Name + ".DropApparel\n" +
+                    "ChangeDresser:Building_Dresser.DropApparel\n" +
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+        }
+
+        public void Empty()
+        {
+            this.DropWeapons(this.storedWeapons, false);
+            this.storedWeapons.Clear();
         }
 
         public override void Notify_ReceivedThing(Thing newItem)
@@ -195,11 +204,11 @@ namespace WeaponStorage
                     found = true;
                     QualityCategory weaponQuality;
                     QualityCategory currentQuality;
-                    if (weapon.TryGetQuality(out weaponQuality) && 
+                    if (weapon.TryGetQuality(out weaponQuality) &&
                         n.Value.TryGetQuality(out currentQuality))
                     {
                         if ((weaponQuality > currentQuality) ||
-                            (weaponQuality == currentQuality && 
+                            (weaponQuality == currentQuality &&
                              weapon.HitPoints >= n.Value.HitPoints))
                         {
                             this.storedWeapons.AddBefore(n, weapon);
@@ -222,18 +231,9 @@ namespace WeaponStorage
             return true;
         }
 
-        public void Empty()
-        {
-            foreach (ThingWithComps twc in storedWeapons)
-            {
-                this.DropThing(twc, false);
-            }
-            this.storedWeapons.Clear();
-        }
-
         internal void ReclaimWeapons()
         {
-            IEnumerable<ThingWithComps> l = 
+            IEnumerable<ThingWithComps> l =
                 BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
             foreach (ThingWithComps t in l)
             {
@@ -242,17 +242,11 @@ namespace WeaponStorage
         }
         public void HandleThingsOnTop()
         {
-#if TRADE_DEBUG
-            Log.Warning("Start ChangeDresser.HandleThingsOnTop for " + this.Label + " Spawned: " + this.Spawned);
-#endif
             if (this.Spawned)
             {
                 foreach (Thing t in base.Map.thingGrid.ThingsAt(this.Position))
                 {
-#if TRADE_DEBUG
-                    Log.Warning("ChangeDresser.HandleThingsOnTop - Thing " + t?.Label);
-#endif
-                    if (t != null && t != this)
+                    if (t != null && t != this && !(t is Blueprint) && !(t is Building))
                     {
                         if (!(t is ThingWithComps && this.AddWeapon((ThingWithComps)t)))
                         {
@@ -267,9 +261,6 @@ namespace WeaponStorage
                     }
                 }
             }
-#if TRADE_DEBUG
-            Log.Warning("End ChangeDresser.HandleThingsOnTop");
-#endif
         }
 
         public override void TickRare()
@@ -353,39 +344,41 @@ namespace WeaponStorage
             return this.storedWeapons.Remove(thing);
         }
 
-        private readonly Stopwatch stopWatch = new Stopwatch();
         public override void TickLong()
         {
-            try
+            if (this.Spawned && base.Map != null)
             {
-                if (!this.stopWatch.IsRunning)
-                    this.stopWatch.Start();
-                else
+                // Fix for an issue where apparel will appear on top of the dresser even though it's already stored inside
+                this.HandleThingsOnTop();
+            }
+
+            if (!this.AreStorageSettingsEqual())
+            {
+                this.UpdatePreviousStorageFilter();
+
+                WorldComp.SortWeaponStoragesToUse();
+
+                List<ThingWithComps> removed = new List<ThingWithComps>();
+                for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n.Next != null; n = n.Next)
                 {
-                    // Do this every minute
-                    if (this.stopWatch.ElapsedMilliseconds > 60000)
+                    if (!base.settings.AllowedToAccept(n.Value))
                     {
-                        for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
-                        {
-                            if (!this.settings.filter.Allows(n.Value))
-                            {
-                                this.DropThing(n.Value, false);
-                                this.storedWeapons.Remove(n);
-                            }
-                        }
-                        this.stopWatch.Reset();
+                        removed.Add(n.Value);
+                        this.storedWeapons.Remove(n);
+                    }
+                }
+
+                foreach (ThingWithComps t in removed)
+                {
+                    if (!WorldComp.Add(t))
+                    {
+                        this.DropThing(t, false);
                     }
                 }
             }
-            catch (Exception e)
-            {
-                Log.Error(
-                    this.GetType().Name + ".TickLong\n" +
-                    e.GetType().Name + " " + e.Message + "\n" +
-                    e.StackTrace);
-            }
         }
 
+        #region Gizmos
         public override IEnumerable<Gizmo> GetGizmos()
         {
             IEnumerable<Gizmo> enumerables = base.GetGizmos();
@@ -457,5 +450,44 @@ namespace WeaponStorage
 
             return SaveStorageSettingsUtil.SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
         }
+        #endregion
+
+        #region ThingFilters
+        private ThingFilter previousStorageFilters = new ThingFilter();
+        private FieldInfo AllowedDefsFI = typeof(ThingFilter).GetField("allowedDefs", BindingFlags.Instance | BindingFlags.NonPublic);
+        protected bool AreStorageSettingsEqual()
+        {
+            ThingFilter currentFilters = base.settings.filter;
+            if (currentFilters.AllowedDefCount != this.previousStorageFilters.AllowedDefCount ||
+                currentFilters.AllowedQualityLevels != this.previousStorageFilters.AllowedQualityLevels ||
+                currentFilters.AllowedHitPointsPercents != this.previousStorageFilters.AllowedHitPointsPercents)
+            {
+                return false;
+            }
+
+            HashSet<ThingDef> currentAllowed = AllowedDefsFI.GetValue(currentFilters) as HashSet<ThingDef>;
+            foreach (ThingDef previousAllowed in AllowedDefsFI.GetValue(this.previousStorageFilters) as HashSet<ThingDef>)
+            {
+                if (!currentAllowed.Contains(previousAllowed))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void UpdatePreviousStorageFilter()
+        {
+            ThingFilter currentFilters = base.settings.filter;
+
+            this.previousStorageFilters.AllowedHitPointsPercents = currentFilters.AllowedHitPointsPercents;
+            this.previousStorageFilters.AllowedQualityLevels = currentFilters.AllowedQualityLevels;
+
+            HashSet<ThingDef> previousAllowed = AllowedDefsFI.GetValue(this.previousStorageFilters) as HashSet<ThingDef>;
+            previousAllowed.Clear();
+            previousAllowed.AddRange(AllowedDefsFI.GetValue(currentFilters) as HashSet<ThingDef>);
+        }
+        #endregion
     }
 }

@@ -1,13 +1,15 @@
 ﻿using RimWorld.Planet;
 using System.Collections.Generic;
 using Verse;
+using System;
 
 namespace WeaponStorage
 {
     class WorldComp : WorldComponent
     {
         public static List<AssignedWeaponContainer> AssignedWeapons = new List<AssignedWeaponContainer>();
-        private static List<Building_WeaponStorage> weaponStorages = new List<Building_WeaponStorage>();
+
+        public static LinkedList<Building_WeaponStorage> WeaponStoragesToUse { get; private set; }
 
         public WorldComp(World world) : base(world)
         {
@@ -16,6 +18,15 @@ namespace WeaponStorage
                 c.Weapons.Clear();
             }
             AssignedWeapons.Clear();
+
+            if (WeaponStoragesToUse == null)
+            {
+                WeaponStoragesToUse = new LinkedList<Building_WeaponStorage>();
+            }
+            else
+            {
+                WeaponStoragesToUse.Clear();
+            }
         }
 
         public static void Add(AssignedWeaponContainer assignedWeapons)
@@ -36,23 +47,27 @@ namespace WeaponStorage
 
         public static void Add(Building_WeaponStorage ws)
         {
-            if (!weaponStorages.Contains(ws))
+            if (!WeaponStoragesToUse.Contains(ws))
             {
-                weaponStorages.Add(ws);
+                WeaponStoragesToUse.AddLast(ws);
             }
         }
 
-        public static IEnumerable<Building_WeaponStorage> WeaponStorages
+        public static bool Add(ThingWithComps t)
         {
-            get
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
-                return weaponStorages;
+                if (ws.AddWeapon(t))
+                {
+                    return true;
+                }
             }
+            return false;
         }
 
         public static void Remove(Building_WeaponStorage ws)
         {
-            weaponStorages.Remove(ws);
+            WeaponStoragesToUse.Remove(ws);
         }
 
         public static bool TryGetAssignedWeapons(string pawnId, out AssignedWeaponContainer assignedWeaponContainer)
@@ -86,6 +101,28 @@ namespace WeaponStorage
             base.ExposeData();
 
             Scribe_Collections.Look(ref AssignedWeapons, "assignedWeapons", LookMode.Deep, new object[0]);
+        }
+
+        public static void SortWeaponStoragesToUse()
+        {
+            LinkedList<Building_WeaponStorage> l = new LinkedList<Building_WeaponStorage>();
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            {
+                bool added = false;
+                for (LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First; n.Next != null; n = n.Next)
+                {
+                    if (ws.settings.Priority > n.Value.settings.Priority)
+                    {
+                        l.AddBefore(n, ws);
+                    }
+                }
+                if (!added)
+                {
+                    l.AddLast(ws);
+                }
+            }
+            WeaponStoragesToUse.Clear();
+            WeaponStoragesToUse = l;
         }
     }
 }
