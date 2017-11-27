@@ -280,6 +280,7 @@ namespace WeaponStorage
             }
 
             Scribe_Collections.Look(ref this.temp, "storedWeapons", LookMode.Deep, new object[0]);
+            Scribe_Values.Look<bool>(ref this.includeInTradeDeals, "includeInTradeDeals", true, false);
 
             if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
