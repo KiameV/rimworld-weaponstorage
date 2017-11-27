@@ -81,7 +81,7 @@
 		</building>
 		<hasInteractionCell>True</hasInteractionCell>
 		<interactionCellOffset>(0,0,1)</interactionCellOffset>
-		<designationCategory>Furniture</designationCategory>
+		<designationCategory>Misc</designationCategory>
 		<tickerType>Rare</tickerType>
 	</ThingDef>
 
