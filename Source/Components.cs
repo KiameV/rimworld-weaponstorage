@@ -109,7 +109,7 @@ namespace WeaponStorage
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
                 bool added = false;
-                for (LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First; n.Next != null; n = n.Next)
+                for (LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First; n != null; n = n.Next)
                 {
                     if (ws.settings.Priority > n.Value.settings.Priority)
                     {

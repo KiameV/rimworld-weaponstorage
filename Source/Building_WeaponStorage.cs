@@ -231,6 +231,19 @@ namespace WeaponStorage
             return true;
         }
 
+        internal int GetWeaponCount(ThingDef def)
+        {
+            int count = 0;
+            foreach(ThingWithComps twc in this.storedWeapons)
+            {
+                if (twc.def == def)
+                {
+                    ++count;
+                }
+            }
+            return count;
+        }
+
         internal void ReclaimWeapons()
         {
             IEnumerable<ThingWithComps> l =
@@ -360,7 +373,7 @@ namespace WeaponStorage
                 WorldComp.SortWeaponStoragesToUse();
 
                 List<ThingWithComps> removed = new List<ThingWithComps>();
-                for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n.Next != null; n = n.Next)
+                for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
                 {
                     if (!base.settings.AllowedToAccept(n.Value))
                     {

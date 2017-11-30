@@ -267,4 +267,29 @@ namespace WeaponStorage
             }
         }
     }
+
+    #region Handle "Do until X" for stored weapons
+    [HarmonyPatch(typeof(RecipeWorkerCounter), "CountProducts")]
+    static class Patch_RecipeWorkerCounter_CountProducts
+    {
+        static void Postfix(ref int __result, RecipeWorkerCounter __instance, Bill_Production bill)
+        {
+            if (WorldComp.WeaponStoragesToUse.Count > 0)
+            {
+                ThingDef def = __instance.recipe.products[0].thingDef;
+                if (def.IsWeapon)
+                {
+                    foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
+                    {
+                        if (bill.Map == ws.Map)
+                        {
+                            __result += ws.GetWeaponCount(def);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    #endregion
+
 }
