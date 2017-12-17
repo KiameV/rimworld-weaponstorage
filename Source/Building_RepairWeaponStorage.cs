@@ -158,8 +158,10 @@ namespace WeaponStorage
         private void OrderAttachedWeaponStorages()
         {
             bool isSorted = true;
-            for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
+            LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First;
+            while (n != null)
             {
+                var next = n.Next;
                 if (!n.Value.Spawned)
                 {
                     this.AttachedWeaponStorages.Remove(n);
@@ -170,12 +172,13 @@ namespace WeaponStorage
                 {
                     isSorted = false;
                 }
+                n = next;
             }
 
             if (!isSorted)
             {
                 LinkedList<Building_WeaponStorage> ordered = new LinkedList<Building_WeaponStorage>();
-                for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
+                for (n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
                 {
                     Building_WeaponStorage ws = n.Value;
                     bool inserted = false;

@@ -82,7 +82,7 @@
 		<hasInteractionCell>True</hasInteractionCell>
 		<interactionCellOffset>(0,0,1)</interactionCellOffset>
 		<designationCategory>Misc</designationCategory>
-		<tickerType>Rare</tickerType>
+		<tickerType>Long</tickerType>
 	</ThingDef>
 
 	<ThingDef ParentName="ArtableFurnitureBase">

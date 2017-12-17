@@ -9,12 +9,19 @@ namespace WeaponStorage
 {
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
-        private LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
+        private readonly LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
 
         private Map CurrentMap { get; set; }
 
+        public bool AllowAdds { get; set; }
+
         private bool includeInTradeDeals = true;
         public bool IncludeInTradeDeals { get { return this.includeInTradeDeals; } }
+
+        public Building_WeaponStorage()
+        {
+            this.AllowAdds = true;
+        }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
@@ -79,7 +86,7 @@ namespace WeaponStorage
                 {
                     foreach (ThingWithComps t in this.storedWeapons)
                     {
-                        this.DropThing(t, true);
+                        this.DropThing(t, false);
                     }
                     this.storedWeapons.Clear();
                 }
@@ -106,10 +113,6 @@ namespace WeaponStorage
         {
             get
             {
-                if (this.storedWeapons == null)
-                {
-                    this.storedWeapons = new LinkedList<ThingWithComps>();
-                }
                 return this.storedWeapons.Count;
             }
         }
@@ -142,13 +145,31 @@ namespace WeaponStorage
 
         public void Empty()
         {
-            this.DropWeapons(this.storedWeapons, false);
-            this.storedWeapons.Clear();
+            try
+            {
+                this.AllowAdds = false;
+                this.DropWeapons(this.storedWeapons, false);
+                this.storedWeapons.Clear();
+            }
+            finally
+            {
+                this.AllowAdds = true;
+            }
         }
 
         public override void Notify_ReceivedThing(Thing newItem)
         {
-            if (!(newItem is ThingWithComps) || !((ThingWithComps)newItem).def.IsWeapon)
+            if (!this.AllowAdds)
+            {
+                if (!newItem.Spawned)
+                {
+                    DropThing(newItem);
+                }
+                return;
+            }
+
+            if (!(newItem is ThingWithComps) ||
+                !((ThingWithComps)newItem).def.IsWeapon)
             {
                 DropThing(newItem);
                 return;
@@ -177,29 +198,46 @@ namespace WeaponStorage
             }
         }
 
-        internal bool AddWeapon(ThingWithComps weapon)
+        internal bool AddWeapon(ThingWithComps weapon, bool fromWorldComp = false)
         {
-            if (weapon == null || !base.settings.AllowedToAccept(weapon))
+            if (weapon != null)
             {
-                return false;
-            }
+                if (this.settings.AllowedToAccept(weapon))
+                {
+                    if (weapon.Spawned)
+                    {
+                        weapon.DeSpawn();
+                    }
 
-            if (weapon != null && weapon.Spawned)
-            {
-                weapon.DeSpawn();
-            }
+                    if (!this.storedWeapons.Contains(weapon))
+                    {
+                        this.AddToSortedList(weapon);
+                    }
+                    return true;
+                }
 
-            if (this.storedWeapons.Contains(weapon))
-            {
-                return true;
-            }
+                // Not Allowed
+                if (!fromWorldComp && WorldComp.Add(weapon))
+                {
+                    return true;
+                }
 
-            string weaponDefName = weapon.def.defName;
+                if (!weapon.Spawned)
+                {
+                    BuildingUtil.DropThing(weapon, this, this.CurrentMap, false);
+                }
+            }
+            return false;
+        }
+
+        private void AddToSortedList(ThingWithComps weapon)
+        {
+            string weaponDefLabel = weapon.def.label;
             bool found = false;
             for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
             {
-                string nDefName = n.Value.def.defName;
-                if (nDefName.Equals(weaponDefName))
+                string nDefLabel = n.Value.def.label;
+                if (nDefLabel.Equals(weaponDefLabel))
                 {
                     found = true;
                     QualityCategory weaponQuality;
@@ -212,29 +250,28 @@ namespace WeaponStorage
                              weapon.HitPoints >= n.Value.HitPoints))
                         {
                             this.storedWeapons.AddBefore(n, weapon);
-                            return true;
+                            return;
                         }
                     }
                 }
-                else if (weaponDefName.CompareTo(nDefName) < 0)
+                else if (weaponDefLabel.CompareTo(nDefLabel) < 0)
                 {
                     this.storedWeapons.AddBefore(n, weapon);
-                    return true;
+                    return;
                 }
                 else if (found)
                 {
                     this.storedWeapons.AddBefore(n, weapon);
-                    return true;
+                    return;
                 }
             }
             this.storedWeapons.AddLast(weapon);
-            return true;
         }
 
         internal int GetWeaponCount(ThingDef def)
         {
             int count = 0;
-            foreach(ThingWithComps twc in this.storedWeapons)
+            foreach (ThingWithComps twc in this.storedWeapons)
             {
                 if (twc.def == def)
                 {
@@ -246,12 +283,16 @@ namespace WeaponStorage
 
         internal void ReclaimWeapons()
         {
-            IEnumerable<ThingWithComps> l =
-                BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
-            foreach (ThingWithComps t in l)
+            List<ThingWithComps> l = BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
+            if (l.Count > 0)
             {
-                this.AddWeapon(t);
+                foreach (ThingWithComps t in l)
+                {
+                    this.AddWeapon(t);
+                }
+                l.Clear();
             }
+
         }
         public void HandleThingsOnTop()
         {
@@ -276,12 +317,6 @@ namespace WeaponStorage
             }
         }
 
-        public override void TickRare()
-        {
-            base.TickRare();
-            this.HandleThingsOnTop();
-        }
-
         public List<ThingWithComps> temp = null;
         public override void ExposeData()
         {
@@ -300,7 +335,10 @@ namespace WeaponStorage
                 this.storedWeapons.Clear();
                 if (this.temp != null)
                 {
-                    this.AddWeapons(this.temp);
+                    foreach (ThingWithComps t in this.temp)
+                    {
+                        this.AddToSortedList(t);
+                    }
                 }
                 this.temp.Clear();
                 this.temp = null;
@@ -331,8 +369,6 @@ namespace WeaponStorage
         {
             get
             {
-                if (this.storedWeapons == null)
-                    this.storedWeapons = new LinkedList<ThingWithComps>();
                 return this.storedWeapons;
             }
         }
@@ -373,13 +409,16 @@ namespace WeaponStorage
                 WorldComp.SortWeaponStoragesToUse();
 
                 List<ThingWithComps> removed = new List<ThingWithComps>();
-                for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
+                LinkedListNode<ThingWithComps> n = this.storedWeapons.First;
+                while (n != null)
                 {
+                    var next = n.Next;
                     if (!base.settings.AllowedToAccept(n.Value))
                     {
                         removed.Add(n.Value);
                         this.storedWeapons.Remove(n);
                     }
+                    n = next;
                 }
 
                 foreach (ThingWithComps t in removed)

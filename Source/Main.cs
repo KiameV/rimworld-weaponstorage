@@ -253,18 +253,12 @@ namespace WeaponStorage
         }
     }
 
-    [HarmonyPatch(typeof(Window), "PreClose")]
+    [HarmonyPatch(typeof(Dialog_Trade), "Close")]
     static class Patch_Window_PreClose
     {
-        // Before closing any window
-        static void Postfix(Window __instance)
+        static void Postfix(bool doCloseSound)
         {
-            Type type = __instance.GetType();
-            if (type == typeof(Dialog_Trade))
-            // || type == typeof(Dialog_LoadTransporters))
-            {
-                TradeUtil.ReclaimWeapons();
-            }
+            TradeUtil.ReclaimWeapons();
         }
     }
 
@@ -274,16 +268,20 @@ namespace WeaponStorage
     {
         static void Postfix(ref int __result, RecipeWorkerCounter __instance, Bill_Production bill)
         {
-            if (WorldComp.WeaponStoragesToUse.Count > 0)
+            List<ThingCountClass> products = __instance.recipe.products;
+            if (WorldComp.WeaponStoragesToUse.Count > 0 && products != null)
             {
-                ThingDef def = __instance.recipe.products[0].thingDef;
-                if (def.IsWeapon)
+                foreach(ThingCountClass product in products)
                 {
-                    foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
+                    ThingDef def = product.thingDef;
+                    if (def.IsWeapon)
                     {
-                        if (bill.Map == ws.Map)
+                        foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
                         {
-                            __result += ws.GetWeaponCount(def);
+                            if (bill.Map == ws.Map)
+                            {
+                                __result += ws.GetWeaponCount(def);
+                            }
                         }
                     }
                 }
@@ -291,5 +289,4 @@ namespace WeaponStorage
         }
     }
     #endregion
-
 }

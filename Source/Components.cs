@@ -57,7 +57,7 @@ namespace WeaponStorage
         {
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
-                if (ws.AddWeapon(t))
+                if (ws.AddWeapon(t, true))
                 {
                     return true;
                 }
@@ -106,19 +106,21 @@ namespace WeaponStorage
         public static void SortWeaponStoragesToUse()
         {
             LinkedList<Building_WeaponStorage> l = new LinkedList<Building_WeaponStorage>();
-            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            foreach (Building_WeaponStorage d in WeaponStoragesToUse)
             {
                 bool added = false;
-                for (LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First; n != null; n = n.Next)
+                for (LinkedListNode<Building_WeaponStorage> n = l.First; n != null; n = n.Next)
                 {
-                    if (ws.settings.Priority > n.Value.settings.Priority)
+                    if (d.settings.Priority > n.Value.settings.Priority)
                     {
-                        l.AddBefore(n, ws);
+                        added = true;
+                        l.AddBefore(n, d);
+                        break;
                     }
                 }
                 if (!added)
                 {
-                    l.AddLast(ws);
+                    l.AddLast(d);
                 }
             }
             WeaponStoragesToUse.Clear();

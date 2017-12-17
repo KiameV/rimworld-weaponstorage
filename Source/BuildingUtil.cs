@@ -7,7 +7,7 @@ namespace WeaponStorage
 {
     class BuildingUtil
     {
-        public static IEnumerable<T> FindThingsOfTypeNextTo<T>(Map map, IntVec3 position, int distance) where T : Thing
+        public static List<T> FindThingsOfTypeNextTo<T>(Map map, IntVec3 position, int distance) where T : Thing
         {
             int minX = Math.Max(0, position.x - distance);
             int maxX = Math.Min(map.info.Size.x, position.x + distance);
@@ -32,6 +32,19 @@ namespace WeaponStorage
         }
 
         private static Random random = null;
+        public static void DropThing(Thing toDrop, Building_WeaponStorage from, Map map, bool makeForbidden = true)
+        {
+            try
+            {
+                from.AllowAdds = false;
+                DropThing(toDrop, (Building)from, map, makeForbidden);
+            }
+            finally
+            {
+                from.AllowAdds = true;
+            }
+        }
+
         public static void DropThing(Thing toDrop, Building from, Map map, bool makeForbidden = true)
         {
             try
