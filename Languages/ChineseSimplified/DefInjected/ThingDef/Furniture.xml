@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <WeaponStorage.label>武器存储箱</WeaponStorage.label>
+  <WeaponStorage.description>存储武器供日后使用。</WeaponStorage.description>
+  <WeaponStorage_Blueprint.label>武器存储箱（蓝图）</WeaponStorage_Blueprint.label>
+  <WeaponStorage_Blueprint_Install.label>武器存储箱（蓝图）</WeaponStorage_Blueprint_Install.label>
+  <WeaponStorage_Frame.label>武器存储箱（建造中）</WeaponStorage_Frame.label>
+  <WeaponStorage_Frame.description>存储武器供日后使用。</WeaponStorage_Frame.description>
+  <RepairWeaponStorage.label>修理装置（武器）</RepairWeaponStorage.label>
+  <RepairWeaponStorage.description>武器存储箱的一个附属装置，连接后能够修补存储箱内的武器。</RepairWeaponStorage.description>
+  <RepairWeaponStorage_Blueprint.label>修理装置（武器）（蓝图）</RepairWeaponStorage_Blueprint.label>
+  <RepairWeaponStorage_Blueprint_Install.label>修理装置（武器）（蓝图）</RepairWeaponStorage_Blueprint_Install.label>
+  <RepairWeaponStorage_Frame.label>修理装置（武器）（建造中）</RepairWeaponStorage_Frame.label>
+  <RepairWeaponStorage_Frame.description>武器存储箱的一个附属装置，连接后能够修补存储箱内的武器。</RepairWeaponStorage_Frame.description>
+</LanguageData>

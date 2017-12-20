@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <WeaponStorage.label>武器存儲箱</WeaponStorage.label>
+  <WeaponStorage.description>存儲武器供日後使用。</WeaponStorage.description>
+  <WeaponStorage_Blueprint.label>武器存儲箱（藍圖）</WeaponStorage_Blueprint.label>
+  <WeaponStorage_Blueprint_Install.label>武器存儲箱（藍圖）</WeaponStorage_Blueprint_Install.label>
+  <WeaponStorage_Frame.label>武器存儲箱（建造中）</WeaponStorage_Frame.label>
+  <WeaponStorage_Frame.description>存儲武器供日後使用。</WeaponStorage_Frame.description>
+  <RepairWeaponStorage.label>修理裝置（武器）</RepairWeaponStorage.label>
+  <RepairWeaponStorage.description>武器存儲箱的一個附屬裝置，連接後能夠修補存儲箱內的武器。</RepairWeaponStorage.description>
+  <RepairWeaponStorage_Blueprint.label>修理裝置（武器）（藍圖）</RepairWeaponStorage_Blueprint.label>
+  <RepairWeaponStorage_Blueprint_Install.label>修理裝置（武器）（藍圖）</RepairWeaponStorage_Blueprint_Install.label>
+  <RepairWeaponStorage_Frame.label>修理裝置（武器）（建造中）</RepairWeaponStorage_Frame.label>
+  <RepairWeaponStorage_Frame.description>武器存儲箱的一個附屬裝置，連接後能夠修補存儲箱內的武器。</RepairWeaponStorage_Frame.description>
+</LanguageData>
