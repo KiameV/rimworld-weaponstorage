@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <WeaponStorage>武器存儲箱</WeaponStorage>
+  <WeaponStorage.ShowWeaponsWhenNotDrafted>未徵召時顯示武器切換UI</WeaponStorage.ShowWeaponsWhenNotDrafted>
+  <WeaponStorage.AssignTo>指定所屬</WeaponStorage.AssignTo>
+  <WeaponStorage.AssignWeapons>專屬武器</WeaponStorage.AssignWeapons>
+  <WeaponStorage.AssignWeaponsDesc>為特定的目標指定武器。</WeaponStorage.AssignWeaponsDesc>
+  <WeaponStorage.Empty>清空</WeaponStorage.Empty>
+  <WeaponStorage.EmptyDesc>把所有已存儲的武器放到周圍地上。</WeaponStorage.EmptyDesc>
+  <WeaponStorage.Collect>收撿</WeaponStorage.Collect>
+  <WeaponStorage.CollectDesc>收集並存儲散落在存儲箱周圍的武器。</WeaponStorage.CollectDesc>
+  <WeaponStorage.IncludeInTradeDeals>出售</WeaponStorage.IncludeInTradeDeals>
+  <WeaponStorage.IncludeInTradeDealsDesc>切換，是否讓已存儲的武器出現在貿易目錄裡。</WeaponStorage.IncludeInTradeDealsDesc>
+  <WeaponStorage.StoragePriority>優先級</WeaponStorage.StoragePriority>
+  <WeaponStorage.Count>已存儲武器</WeaponStorage.Count>
+  <WeaponStorage.Equip>裝備</WeaponStorage.Equip>
+  <WeaponStorage.AttachedWeaponStorages>連接至武器存儲箱</WeaponStorage.AttachedWeaponStorages>
+  <WeaponStorage.IsRepairing>修理中</WeaponStorage.IsRepairing>
+</LanguageData>
