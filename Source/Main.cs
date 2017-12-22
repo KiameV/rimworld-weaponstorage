@@ -145,7 +145,33 @@ namespace WeaponStorage
                     if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c))
                     {
                         c.Weapons.Add(primary);
+                        c.WeaponUsedBeforeDowned = primary;
                         pawn.equipment.Remove(primary);
+                    }
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeUndowned")]
+    static class Patch_Pawn_HealthTracker_MakeUndowned
+    {
+        static void Postfix(Pawn_HealthTracker __instance)
+        {
+            Pawn pawn = (Pawn)__instance.GetType().GetField(
+                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
+            if (pawn != null &&
+                pawn.Faction == Faction.OfPlayer &&
+                pawn.def.race.Humanlike)
+            {
+                AssignedWeaponContainer c;
+                if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c) && 
+                    c.WeaponUsedBeforeDowned != null)
+                {
+                    if (c.Weapons.Remove(c.WeaponUsedBeforeDowned))
+                    {
+                        pawn.equipment.AddEquipment(c.WeaponUsedBeforeDowned);
+                        c.WeaponUsedBeforeDowned = null;
                     }
                 }
             }

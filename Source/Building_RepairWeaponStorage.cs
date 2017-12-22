@@ -167,8 +167,8 @@ namespace WeaponStorage
                     this.AttachedWeaponStorages.Remove(n);
                 }
                 else if (
-                    n.Next != null &&
-                    n.Value.settings.Priority < n.Next.Value.settings.Priority)
+                    next != null &&
+                    n.Value.settings.Priority < next.Value.settings.Priority)
                 {
                     isSorted = false;
                 }
