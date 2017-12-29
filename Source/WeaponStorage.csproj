@@ -53,7 +53,8 @@
     <Compile Include="BuildingUtil.cs" />
     <Compile Include="Building_WeaponStorage.cs" />
     <Compile Include="Components.cs" />
-    <Compile Include="Main.cs" />
+    <Compile Include="HarmonyPatches_Bills.cs" />
+    <Compile Include="HarmonyPatches.cs" />
     <Compile Include="AssignedWeaponContainer.cs" />
     <Compile Include="PawnLookupUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

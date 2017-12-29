@@ -117,9 +117,9 @@ namespace WeaponStorage
             }
         }
 
-        private void DropThing(Thing t, bool makeForbidden = true)
+        private bool DropThing(Thing t, bool makeForbidden = true)
         {
-            BuildingUtil.DropThing(t, this, this.CurrentMap, makeForbidden);
+            return BuildingUtil.DropThing(t, this, this.CurrentMap, makeForbidden);
         }
 
         private void DropWeapons<T>(IEnumerable<T> things, bool makeForbidden = true) where T : Thing
@@ -281,6 +281,23 @@ namespace WeaponStorage
             return count;
         }
 
+        internal bool TryGetFilteredWeapons(Bill bill, ThingFilter filter, out List<ThingWithComps> gotten)
+        {
+            gotten = null;
+            foreach (ThingWithComps weapon in this.storedWeapons)
+            {
+                if (bill.IsFixedOrAllowedIngredient(weapon) && filter.Allows(weapon))
+                {
+                    if (gotten == null)
+                    {
+                        gotten = new List<ThingWithComps>();
+                    }
+                    gotten.Add(weapon);
+                }
+            }
+            return gotten != null;
+        }
+
         internal void ReclaimWeapons()
         {
             List<ThingWithComps> l = BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
@@ -373,12 +390,14 @@ namespace WeaponStorage
             }
         }
 
-        public void Remove(ThingWithComps weapon, bool forbidden = true)
+        public bool Remove(ThingWithComps weapon, bool forbidden = true)
         {
             try
             {
-                this.DropThing(weapon, forbidden);
-                this.storedWeapons.Remove(weapon);
+                if (this.DropThing(weapon, forbidden))
+                {
+                    return this.storedWeapons.Remove(weapon);
+                }
             }
             catch (Exception e)
             {
@@ -387,6 +406,7 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+            return false;
         }
 
         public bool RemoveNoDrop(ThingWithComps thing)

@@ -1,29 +1,38 @@
 ﻿using Harmony;
 using RimWorld;
+using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-using UnityEngine;
 using Verse;
 using Verse.AI;
+using Verse.AI.Group;
 
 namespace WeaponStorage
 {
     [StaticConstructorOnStartup]
-    class Main
+    partial class HarmonyPatches
     {
-        static Main()
+        static HarmonyPatches()
         {
             var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            Log.Message("WeaponStorage: Adding Harmony Prefix to Pawn_HealthTracker.MakeDowned - not blocking");
-            Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_DraftController.GetGizmos");
-            Log.Message("WeaponStorage: Adding Harmony Postfix to Pawn_TraderTracker.ColonyThingsWillingToBuy");
-            Log.Message("WeaponStorage: Adding Harmony Postfix to TradeShip.ColonyThingsWillingToBuy");
-            Log.Message("WeaponStorage: Adding Harmony Postfix to Window.PreClose");
-            Log.Message("WeaponStorage: Adding Harmony Postfix to ReservationManager.CanReserve");
+            
+            Log.Message(
+                "WeaponStorage Harmony Patches:" + Environment.NewLine +
+                "  Prefix:" + Environment.NewLine +
+                "    Pawn_HealthTracker.MakeDowned - not blocking" + Environment.NewLine +
+                "    Dialog_FormCaravan.PostOpen" + Environment.NewLine +
+                "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int)" + Environment.NewLine +
+                "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int, int)" + Environment.NewLine +
+                "  Postfix:" + Environment.NewLine +
+                "    Pawn_DraftController.GetGizmos" + Environment.NewLine +
+                "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
+                "    TradeShip.ColonyThingsWillingToBuy" + Environment.NewLine +
+                "    Window.PreClose" + Environment.NewLine +
+                "    ReservationManager.CanReserve" + Environment.NewLine +
+                "    CaravanFormingUtility.StopFormingCaravan");
         }
     }
 
@@ -287,6 +296,82 @@ namespace WeaponStorage
             TradeUtil.ReclaimWeapons();
         }
     }
+
+    #region Caravan Forming
+    [HarmonyPatch(typeof(Dialog_FormCaravan), "PostOpen")]
+    static class Patch_Dialog_FormCaravan_PostOpen
+    {
+        static void Prefix(Window __instance)
+        {
+            Type type = __instance.GetType();
+            if (type == typeof(Dialog_FormCaravan))
+            {
+                Map map = __instance.GetType().GetField("map", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance) as Map;
+
+                foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(map))
+                {
+                    storage.Empty();
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(CaravanFormingUtility), "StopFormingCaravan")]
+    static class Patch_CaravanFormingUtility_StopFormingCaravan
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(Lord lord)
+        {
+            foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(lord.Map))
+            {
+                storage.ReclaimWeapons();
+            }
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(CaravanExitMapUtility), "ExitMapAndCreateCaravan",
+        new Type[] { typeof(IEnumerable<Pawn>), typeof(Faction), typeof(int), typeof(int) })]
+    static class Patch_CaravanExitMapUtility_ExitMapAndCreateCaravan_1
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(IEnumerable<Pawn> pawns, Faction faction, int exitFromTile, int directionTile)
+        {
+            if (faction == Faction.OfPlayer)
+            {
+                List<Pawn> p = new List<Pawn>(pawns);
+                if (p.Count > 0)
+                {
+                    foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(p[0].Map))
+                    {
+                        storage.ReclaimWeapons();
+                    }
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(
+        typeof(CaravanExitMapUtility), "ExitMapAndCreateCaravan",
+        new Type[] { typeof(IEnumerable<Pawn>), typeof(Faction), typeof(int) })]
+    static class Patch_CaravanExitMapUtility_ExitMapAndCreateCaravan_2
+    {
+        static void Prefix(IEnumerable<Pawn> pawns, Faction faction, int startingTile)
+        {
+            if (faction == Faction.OfPlayer)
+            {
+                List<Pawn> p = new List<Pawn>(pawns);
+                if (p.Count > 0)
+                {
+                    foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(p[0].Map))
+                    {
+                        storage.ReclaimWeapons();
+                    }
+                }
+            }
+        }
+    }
+    #endregion
 
     #region Handle "Do until X" for stored weapons
     [HarmonyPatch(typeof(RecipeWorkerCounter), "CountProducts")]

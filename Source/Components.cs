@@ -65,6 +65,29 @@ namespace WeaponStorage
             return false;
         }
 
+        public static IEnumerable<Building_WeaponStorage> GetWeaponStorages(Map map)
+        {
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            {
+                if (ws.Spawned && ws.Map == map)
+                {
+                    yield return ws;
+                }
+            }
+        }
+
+        public static bool HasStorages(Map map)
+        {
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            {
+                if (ws.Spawned && ws.Map == map)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static void Remove(Building_WeaponStorage ws)
         {
             WeaponStoragesToUse.Remove(ws);

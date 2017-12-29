@@ -32,7 +32,7 @@ namespace WeaponStorage
         }
 
         private static Random random = null;
-        public static void DropThing(Thing toDrop, Building_WeaponStorage from, Map map, bool makeForbidden = true)
+        public static bool DropThing(Thing toDrop, Building_WeaponStorage from, Map map, bool makeForbidden = true)
         {
             try
             {
@@ -43,6 +43,7 @@ namespace WeaponStorage
             {
                 from.AllowAdds = true;
             }
+            return toDrop.Spawned;
         }
 
         public static void DropThing(Thing toDrop, Building from, Map map, bool makeForbidden = true)
