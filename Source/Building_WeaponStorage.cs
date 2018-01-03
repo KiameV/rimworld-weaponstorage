@@ -390,6 +390,9 @@ namespace WeaponStorage
             }
         }
 
+        /// <summary>
+        /// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
+        /// </summary>
         public bool Remove(ThingWithComps weapon, bool forbidden = true)
         {
             try

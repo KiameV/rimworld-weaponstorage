@@ -288,6 +288,16 @@ namespace WeaponStorage
         }
     }
 
+    [HarmonyPatch(typeof(TradeDeal), "Reset")]
+    static class Patch_TradeDeal_Reset
+    {
+        // On Reset from Trade Dialog
+        static void Prefix()
+        {
+            TradeUtil.ReclaimWeapons();
+        }
+    }
+
     [HarmonyPatch(typeof(Dialog_Trade), "Close")]
     static class Patch_Window_PreClose
     {
