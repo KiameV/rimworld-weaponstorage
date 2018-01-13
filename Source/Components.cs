@@ -15,7 +15,7 @@ namespace WeaponStorage
         {
             foreach (AssignedWeaponContainer c in AssignedWeapons)
             {
-                c.Weapons.Clear();
+                c.Clear();
             }
             AssignedWeapons.Clear();
 
@@ -65,6 +65,17 @@ namespace WeaponStorage
             return false;
         }
 
+        public static IEnumerable<Building_WeaponStorage> GetWeaponStorages()
+        {
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            {
+                if (ws.Spawned)
+                {
+                    yield return ws;
+                }
+            }
+        }
+
         public static IEnumerable<Building_WeaponStorage> GetWeaponStorages(Map map)
         {
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
@@ -74,6 +85,18 @@ namespace WeaponStorage
                     yield return ws;
                 }
             }
+        }
+
+        public static bool HasStorages()
+        {
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            {
+                if (ws.Spawned)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static bool HasStorages(Map map)

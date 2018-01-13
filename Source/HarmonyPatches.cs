@@ -4,7 +4,6 @@ using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
@@ -32,103 +31,52 @@ namespace WeaponStorage
                 "    TradeShip.ColonyThingsWillingToBuy" + Environment.NewLine +
                 "    Window.PreClose" + Environment.NewLine +
                 "    ReservationManager.CanReserve" + Environment.NewLine +
-                "    CaravanFormingUtility.StopFormingCaravan");
+                "    CaravanFormingUtility.StopFormingCaravan" + Environment.NewLine +
+                "    Pawn_DraftController.Drafted { set; }");
         }
     }
 
-    [HarmonyPatch(typeof(Pawn_DraftController), "GetGizmos")]
-    static class Patch_Pawn_DraftController_GetGizmos
+    static class HarmonyPatchUtil
     {
-        static void Postfix(Pawn_DraftController __instance, ref IEnumerable<Gizmo> __result)
+        public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer weapons)
         {
-            if (__instance.pawn.Drafted || Settings.ShowWeaponsWhenNotDrafted)
+            ThingWithComps p = pawn.equipment.Primary;
+            if (p != null)
             {
-                AssignedWeaponContainer weapons;
-                if (WorldComp.TryGetAssignedWeapons(__instance.pawn.ThingID, out weapons))
+                pawn.equipment.Remove(p);
+                weapons.Add(p);
+            }
+
+            weapons.Remove(weapon);
+
+            pawn.equipment.AddEquipment(weapon);
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_DraftController), "set_Drafted")]
+    static class Patch_Pawn_DraftController
+    {
+        static void Postfix(Pawn_DraftController __instance)
+        {
+            Pawn pawn = __instance.pawn;
+            AssignedWeaponContainer weapons;
+            if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out weapons))
+            {
+                if (pawn.Drafted)
                 {
-                    List<Gizmo> l;
-                    if (__result != null)
-                        l = new List<Gizmo>(__result);
-                    else
-                        l = new List<Gizmo>(weapons.Weapons.Count);
-
-                    try
+                    // Going combat
+                    if (weapons.LastWeaponUsed != null)
                     {
-                        for (int i = 0; i < weapons.Weapons.Count; ++i)
-                        {
-                            ThingWithComps t = weapons.Weapons[i];
-
-                            Command_Action a = new Command_Action();
-                            if (t.def.uiIcon != null)
-                            {
-                                a.icon = t.def.uiIcon;
-                            }
-                            else if (t.def.graphicData.texPath != null)
-                            {
-                                a.icon = ContentFinder<UnityEngine.Texture2D>.Get(t.def.graphicData.texPath, true);
-                            }
-                            else
-                            {
-                                a.icon = null;
-                            }
-                            StringBuilder sb = new StringBuilder("WeaponStorage.Equip".Translate());
-                            sb.Append(" ");
-                            sb.Append(t.def.label);
-                            a.defaultLabel = sb.ToString();
-                            a.defaultDesc = "Equip this item.";
-                            a.activateSound = SoundDef.Named("Click");
-                            a.groupKey = t.def.GetHashCode();
-                            a.action = delegate
-                            {
-                                ThingWithComps p = __instance.pawn.equipment.Primary;
-                                if (p != null)
-                                {
-                                    /*if (!p.def.IsRangedWeapon && !p.def.IsMeleeWeapon)
-                                    {
-                                        ThingWithComps temp;
-                                        __instance.pawn.equipment.TryDropEquipment(p, out temp, __instance.pawn.Position, true);
-                                    }
-                                    else
-                                    {*/
-                                    __instance.pawn.equipment.Remove(p);
-                                    //}
-                                }
-
-                                bool added = false;
-                                for (int j = 0; j < weapons.Weapons.Count; ++j)
-                                {
-                                    if (weapons.Weapons[j].thingIDNumber == t.thingIDNumber)
-                                    {
-                                        if (p == null)
-                                        {
-                                            weapons.Weapons.RemoveAt(j);
-                                        }
-                                        else
-                                        {
-                                            weapons.Weapons[j] = p;
-                                        }
-                                            added = true;
-                                        break;
-
-                                    }
-                                }
-
-                                if (!added)
-                                {
-                                    weapons.Weapons.Add(p);
-                                }
-
-                                __instance.pawn.equipment.AddEquipment(t);
-                            };
-                            l.Add(a);
-                        }
+                        HarmonyPatchUtil.EquipWeapon(weapons.LastWeaponUsed, pawn, weapons);
                     }
-                    catch
+                }
+                else
+                {
+                    // Going civilian
+                    if (weapons.LastToolUsed != null)
                     {
-
+                        HarmonyPatchUtil.EquipWeapon(weapons.LastToolUsed, pawn, weapons);
                     }
-
-                    __result = l;
                 }
             }
         }
@@ -153,8 +101,7 @@ namespace WeaponStorage
                     AssignedWeaponContainer c;
                     if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c))
                     {
-                        c.Weapons.Add(primary);
-                        c.WeaponUsedBeforeDowned = primary;
+                        c.Add(primary);
                         pawn.equipment.Remove(primary);
                     }
                 }
@@ -174,13 +121,12 @@ namespace WeaponStorage
                 pawn.def.race.Humanlike)
             {
                 AssignedWeaponContainer c;
-                if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c) && 
-                    c.WeaponUsedBeforeDowned != null)
+                if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c) &&
+                    pawn.equipment.Primary == null)
                 {
-                    if (c.Weapons.Remove(c.WeaponUsedBeforeDowned))
+                    if (c.LastWeaponUsed != null && c.Remove(c.LastWeaponUsed))
                     {
-                        pawn.equipment.AddEquipment(c.WeaponUsedBeforeDowned);
-                        c.WeaponUsedBeforeDowned = null;
+                        pawn.equipment.AddEquipment(c.LastWeaponUsed);
                     }
                 }
             }

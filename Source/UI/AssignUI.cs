@@ -145,7 +145,7 @@ namespace WeaponStorage.UI
                             }
                             else
                             {
-                                size = c.Weapons.Count + this.weaponStorage.Count + 1;
+                                size = c.Count + this.weaponStorage.Count + 1;
                             }
 
                             this.PossibleWeapons = new List<WeaponSelected>(size);
@@ -279,7 +279,7 @@ namespace WeaponStorage.UI
             }
 
             this.weaponStorage.AddWeapons(c.Weapons);
-            c.Weapons.Clear();
+            c.Clear();
 
             bool primaryFound = false;
             ThingWithComps primary = p.equipment.Primary;
@@ -296,7 +296,7 @@ namespace WeaponStorage.UI
                     {
                         if (this.weaponStorage.RemoveNoDrop(s.thing))
                         {
-                            c.Weapons.Add(s.thing);
+                            c.Add(s.thing);
                         }
                     }
                 }
@@ -309,7 +309,7 @@ namespace WeaponStorage.UI
                 this.weaponStorage.AddWeapon(primary);
             }
 
-            if (c.Weapons.Count == 0)
+            if (c.Count == 0)
             {
                 WorldComp.AssignedWeapons.Remove(c);
             }
