@@ -81,7 +81,7 @@ namespace WeaponStorage
                     if (this.CountReached(l))
                     {
 #if DEBUG
-                        Log.Warning("Count [" + Count + "] reached with: " + l[0].Thing.def.label);
+                        Log.Warning("Count [" + Count + "] reached with: " + l[0].Weapon.def.label);
 #endif
                         return l;
                     }
@@ -123,11 +123,11 @@ namespace WeaponStorage
                 }
 
 #if DEBUG || DROP_DEBUG || BILL_DEBUG
-            Log.Warning("    ChosenAmounts:");
-            foreach (KeyValuePair<ThingLookup, int> kv in chosenAmounts)
-            {
-                Log.Warning("        " + kv.Key.Def.label + " - " + kv.Value);
-            }
+                Log.Warning("    ChosenAmounts:");
+                //foreach (KeyValuePair<ThingLookup, int> kv in chosenAmounts)
+                {
+                //    Log.Warning("        " + kv.Key.Def.label + " - " + kv.Value);
+                }
 #endif
 
                 LinkedList<NeededIngrediants> neededIngs = new LinkedList<NeededIngrediants>();
@@ -144,7 +144,7 @@ namespace WeaponStorage
                             if (ing.filter.Allows(kv.Key))
                             {
 #if DEBUG || DROP_DEBUG || BILL_DEBUG
-                            Log.Warning("    Needed Ing population found: " + kv.Key.Def.label + " count: " + kv.Value);
+                            Log.Warning("    Needed Ing population found: " + kv.Key.label + " count: " + kv.Value);
 #endif
                                 found = true;
                                 break;

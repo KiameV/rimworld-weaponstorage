@@ -19,6 +19,9 @@ namespace WeaponStorage
                 this.weapons.Clear();
                 foreach (ThingWithComps t in value)
                     this.Add(t);
+#if DEBUG
+                Log.Warning(this.GetType().Name + ".Weapons_set Count: " + this.weapons.Count);
+#endif
             }
         }
         public int Count { get { return this.weapons.Count; } }
@@ -51,6 +54,17 @@ namespace WeaponStorage
 
         public void Add(ThingWithComps weapon)
         {
+#if DEBUG
+            Log.Warning(this.GetType().Name + ".Remove(" + weapon.Label + ")");
+#endif
+            if (this.weapons.Contains(weapon))
+            {
+#if DEBUG
+                Log.Warning("    Contains: " + weapon.Label + ")");
+#endif
+                return;
+            }
+
             bool isTool = Settings.IsTool(weapon);
             if (isTool)
             {
@@ -64,11 +78,25 @@ namespace WeaponStorage
 
         public void Clear()
         {
+#if DEBUG
+            Log.Warning(this.GetType().Name + ".Clear");
+#endif
             this.weapons.Clear();
         }
 
         public bool Remove(ThingWithComps weapon)
         {
+#if DEBUG
+            Log.Warning(this.GetType().Name + ".Remove(" + weapon.Label + ")");
+#endif
+            if (this.LastToolUsed == weapon)
+            {
+                this.LastToolUsed = null;
+            }
+            if (this.LastWeaponUsed == weapon)
+            {
+                this.LastWeaponUsed = null;
+            }
             return this.weapons.Remove(weapon);
         }
     }

@@ -106,12 +106,12 @@ namespace WeaponStorage.UI
             }
         }
 
-#if DEBUG
+#if TRACE
         int i = 600;
 #endif
         public override void DoWindowContents(Rect inRect)
         {
-#if DEBUG
+#if TRACE
             ++i;
 #endif
             GUI.color = Color.white;
@@ -129,9 +129,17 @@ namespace WeaponStorage.UI
                         {
                             if (this.selectedPawn != null)
                             {
+#if DEBUG
+                                Log.Warning(this.GetType().Name + ".DoWindowContents change pawn from " + this.selectedPawn.Name.ToStringShort + " to " + p.Name.ToStringShort);
+#endif
                                 this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
+                            }
+
+                            if (this.PossibleWeapons != null)
+                            {
                                 this.PossibleWeapons.Clear();
                             }
+
                             this.PossibleWeapons = null;
 
                             this.selectedPawn = p;
@@ -203,22 +211,22 @@ namespace WeaponStorage.UI
                 }
                 else
                 {
-#if DEBUG
+#if TRACE
                     if (i > 600)
                     {
-                        Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.StoredWeapons.Count);
+                        Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.Count);
                     }
 #endif
-                    int i = 0;
+                    int rowIndex = 0;
                     foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
                     {
-#if DEBUG
+#if TRACE
                         if (i > 600)
                         {
                             Log.Warning("-" + t.Label);
                         }
 #endif
-                        GUI.BeginGroup(new Rect(0, 55 + i * (HEIGHT + BUFFER), r.width, HEIGHT));
+                        GUI.BeginGroup(new Rect(0, 55 + rowIndex * (HEIGHT + BUFFER), r.width, HEIGHT));
 
                         Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), t);
 
@@ -230,7 +238,7 @@ namespace WeaponStorage.UI
                             break;
                         }
                         GUI.EndGroup();
-                        ++i;
+                        ++rowIndex;
                     }
                 }
 
@@ -247,7 +255,7 @@ namespace WeaponStorage.UI
             {
                 Text.Anchor = TextAnchor.UpperLeft;
                 GUI.color = Color.white;
-#if DEBUG
+#if TRACE
                 if (i > 600)
                 {
                     i = 0;
@@ -266,6 +274,9 @@ namespace WeaponStorage.UI
 
         private void SetAssignedWeapons(Pawn p, List<WeaponSelected> weapons)
         {
+#if DEBUG
+            Log.Warning(this.GetType().Name + " " + p.Name.ToStringShort + " " + weapons.Count);
+#endif
             if (p == null || weapons == null)
             {
                 return;
@@ -276,50 +287,92 @@ namespace WeaponStorage.UI
             {
                 c = new AssignedWeaponContainer();
                 c.PawnId = p.ThingID;
+                WorldComp.Add(c);
             }
 
-            this.weaponStorage.AddWeapons(c.Weapons);
-            c.Clear();
-
-            bool primaryFound = false;
-            ThingWithComps primary = p.equipment.Primary;
-            foreach (WeaponSelected s in this.PossibleWeapons)
+            foreach(WeaponSelected selected in weapons)
             {
-                if (s.isChecked)
+                if (selected.isChecked)
                 {
-                    if (primary != null && !primaryFound &&
-                        primary.thingIDNumber == s.thing.thingIDNumber)
+                    if (this.weaponStorage.RemoveNoDrop(selected.thing)) // This covers the case of primary weapon since the weapon will not be stored
                     {
-                        primaryFound = true;
+                        c.Add(selected.thing);
                     }
-                    else
+                }
+                else // Not Checked
+                {
+                    if (selected.thing == p.equipment.Primary)
                     {
-                        if (this.weaponStorage.RemoveNoDrop(s.thing))
+                        ThingWithComps t = p.equipment.Primary;
+                        p.equipment.Remove(t);
+                        this.weaponStorage.AddWeapon(t);
+                    }
+                    else // Not Primary
+                    {
+                        if (c.Remove(selected.thing))
                         {
-                            c.Add(s.thing);
+                            this.weaponStorage.AddWeapon(selected.thing);
                         }
                     }
                 }
             }
 
-            if (!primaryFound && primary != null &&
-                (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
-            {
-                p.equipment.Remove(primary);
-                this.weaponStorage.AddWeapon(primary);
-            }
-
             if (c.Count == 0)
             {
+#if DEBUG
+                Log.Warning("    Remove from WorldComp");
+#endif
                 WorldComp.AssignedWeapons.Remove(c);
             }
-            else
-            {
-#if DEBUG
-                Log.Warning("AssignUI.SetAssignedWeapons: Try Add");
-#endif
-                WorldComp.Add(c);
-            }
+            /*
+                        this.weaponStorage.AddWeapons(c.Weapons);
+                        c.Clear();
+
+                        bool primaryFound = false;
+                        ThingWithComps primary = p.equipment.Primary;
+                        foreach (WeaponSelected s in this.PossibleWeapons)
+                        {
+                            if (s.isChecked)
+                            {
+                                if (primary != null && !primaryFound &&
+                                    primary.thingIDNumber == s.thing.thingIDNumber)
+                                {
+                                    primaryFound = true;
+                                }
+                                else
+                                {
+                                    if (this.weaponStorage.RemoveNoDrop(s.thing))
+                                    {
+                                        c.Add(s.thing);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!primaryFound && primary != null &&
+                            (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
+                        {
+            #if DEBUG
+                            Log.Warning("    Primary: " + primary.Label);
+            #endif
+                            p.equipment.Remove(primary);
+                            this.weaponStorage.AddWeapon(primary);
+                        }
+
+                        if (c.Count == 0)
+                        {
+            #if DEBUG
+                            Log.Warning("    Remove from WorldComp");
+            #endif
+                            WorldComp.AssignedWeapons.Remove(c);
+                        }
+                        else
+                        {
+            #if DEBUG
+                            Log.Warning("    Add to WorldComp");
+            #endif
+                            WorldComp.Add(c);
+                        }*/
         }
     }
 }

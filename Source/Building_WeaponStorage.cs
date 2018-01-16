@@ -414,6 +414,9 @@ namespace WeaponStorage
 
         public bool RemoveNoDrop(ThingWithComps thing)
         {
+#if DEBUG
+            Log.Warning(this.GetType().Name + ".RemoveNoDrop " + thing.Label);
+#endif
             return this.storedWeapons.Remove(thing);
         }
 

@@ -40,6 +40,9 @@ namespace WeaponStorage
     {
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer weapons)
         {
+#if DEBUG
+            Log.Warning("HarmonyPatchUtil.EquipWeapon " + weapon.Label + " " + pawn.Name.ToStringShort + " " + weapons.Count);
+#endif
             ThingWithComps p = pawn.equipment.Primary;
             if (p != null)
             {
@@ -47,9 +50,10 @@ namespace WeaponStorage
                 weapons.Add(p);
             }
 
-            weapons.Remove(weapon);
-
-            pawn.equipment.AddEquipment(weapon);
+            if (weapons.Remove(weapon))
+            {
+                pawn.equipment.AddEquipment(weapon);
+            }
         }
     }
 

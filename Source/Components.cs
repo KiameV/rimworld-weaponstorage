@@ -32,7 +32,7 @@ namespace WeaponStorage
         public static void Add(AssignedWeaponContainer assignedWeapons)
         {
 #if DEBUG
-            Log.Warning("WeaponStorage.TryAdd for " + assignedWeapons.PawnId);
+            Log.Warning("WeaponStorage.TryAdd for " + assignedWeapons.PawnId + " Weapon Count: " + assignedWeapons.Count);
 #endif
             AssignedWeaponContainer c;
             if (!TryGetAssignedWeapons(assignedWeapons.PawnId, out c))
