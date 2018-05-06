@@ -32,7 +32,8 @@ namespace WeaponStorage
                 "    Window.PreClose" + Environment.NewLine +
                 "    ReservationManager.CanReserve" + Environment.NewLine +
                 "    CaravanFormingUtility.StopFormingCaravan" + Environment.NewLine +
-                "    Pawn_DraftController.Drafted { set; }");
+                "    Pawn_DraftController.Drafted { set; }" + Environment.NewLine +
+                "    WealthWatcher.ForceRecount");
         }
     }
 
@@ -347,12 +348,9 @@ namespace WeaponStorage
                     ThingDef def = product.thingDef;
                     if (def.IsWeapon)
                     {
-                        foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
+                        foreach (Building_WeaponStorage ws in WorldComp.GetWeaponStorages(bill.Map))
                         {
-                            if (bill.Map == ws.Map)
-                            {
-                                __result += ws.GetWeaponCount(def);
-                            }
+                            __result += ws.GetWeaponCount(def, bill.ingredientFilter);
                         }
                     }
                 }
