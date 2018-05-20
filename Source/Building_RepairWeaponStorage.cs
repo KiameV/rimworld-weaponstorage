@@ -12,11 +12,12 @@ namespace WeaponStorage
         private const int LOW_POWER_COST = 10;
         //private const int RARE_TICKS_PER_HP = 4;
 
+        private static LinkedList<ThingWithComps> AllWeaponsBeingRepaired = new LinkedList<ThingWithComps>();
         private LinkedList<Building_WeaponStorage> AttachedWeaponStorages = new LinkedList<Building_WeaponStorage>();
         public CompPowerTrader compPowerTrader;
 
-        private Pawn AssignedTo = null;
-        private ThingWithComps BeingRepaird = null;
+        private AssignedWeaponContainer container = null;
+        private ThingWithComps beingRepaird = null;
         private Map CurrentMap;
         //private int rareTickCount = 0;
 
@@ -32,19 +33,19 @@ namespace WeaponStorage
             sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.IsRepairing".Translate());
             sb.Append(": ");
-            if (BeingRepaird == null)
+            if (this.beingRepaird != null)
             {
-                sb.Append(Boolean.FalseString);
-                if (this.AssignedTo != null)
+                sb.Append(beingRepaird.Label);
+                if (this.container != null)
                 {
                     sb.Append(" (");
-                    sb.Append(this.AssignedTo.Name.ToStringShort);
+                    sb.Append(this.container.Pawn.Name.ToStringShort);
                     sb.Append(")");
                 }
             }
             else
             {
-                sb.Append(BeingRepaird.Label);
+                sb.Append(Boolean.FalseString);
             }
             return sb.ToString();
         }
@@ -57,15 +58,14 @@ namespace WeaponStorage
 
             this.CurrentMap = map;
 
-            foreach (Building_WeaponStorage ws in 
-                BuildingUtil.FindThingsOfTypeNextTo<Building_WeaponStorage>(base.Map, base.Position, Settings.RepairAttachmentDistance))
+            foreach (Building_WeaponStorage s in BuildingUtil.FindThingsOfTypeNextTo<Building_WeaponStorage>(base.Map, base.Position, Settings.RepairAttachmentDistance))
             {
-                this.AddWeaponStorage(ws);
+                this.Add(s);
             }
 
 #if DEBUG_REPAIR
-            Log.Warning(this.Label + " adding attached WeaponStorages:");
-            foreach (Building_WeaponStorage d in this.AttachedWeaponStorages)
+            Log.Warning(this.Label + " adding attached dressers:");
+            foreach (Building_Dresser d in this.AttachedDressers)
             {
                 Log.Warning(" " + d.Label);
             }
@@ -78,7 +78,7 @@ namespace WeaponStorage
 
             this.compPowerTrader.powerStoppedAction = new Action(delegate ()
             {
-                this.PlaceWeaponInStorage();
+                this.StopRepairing();
                 this.compPowerTrader.PowerOutput = 0;
             });
         }
@@ -86,21 +86,21 @@ namespace WeaponStorage
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
         {
             base.Destroy(mode);
-            this.PlaceWeaponInStorage();
+            this.StopRepairing();
             this.AttachedWeaponStorages.Clear();
         }
 
         public override void Discard(bool silentlyRemoveReferences = false)
         {
             base.Discard(silentlyRemoveReferences);
-            this.PlaceWeaponInStorage();
+            this.StopRepairing();
             this.AttachedWeaponStorages.Clear();
         }
 
         public override void DeSpawn()
         {
             base.DeSpawn();
-            this.PlaceWeaponInStorage();
+            this.StopRepairing();
             this.AttachedWeaponStorages.Clear();
         }
 
@@ -109,39 +109,30 @@ namespace WeaponStorage
             if (!this.compPowerTrader.PowerOn)
             {
                 // Power is off
-                if (BeingRepaird != null)
+                if (beingRepaird != null)
                 {
-                    this.PlaceWeaponInStorage();
+                    this.StopRepairing();
                 }
             }
-            else if (
-                this.AssignedTo != null && 
-                this.AssignedTo.Drafted && 
-                this.AssignedTo.equipment.Primary == this.BeingRepaird)
-            {
-                // The weapon is in use
-                this.AssignedTo = null;
-                this.BeingRepaird = this.FindWeaponToRepair();
-            }
-            else if (this.BeingRepaird == null)
+            else if (this.beingRepaird == null)
             {
                 // Power is on and not repairing anything
-                this.BeingRepaird = this.FindWeaponToRepair();
+                this.StartRepairing();
             }
             else if (
-                this.BeingRepaird != null &&
-                this.BeingRepaird.HitPoints == this.BeingRepaird.MaxHitPoints)
+                this.beingRepaird != null &&
+                this.beingRepaird.HitPoints == this.beingRepaird.MaxHitPoints)
             {
                 // Power is on
                 // Repairing something
-                // Weapon is fully repaired
-                this.PlaceWeaponInStorage();
-                this.BeingRepaird = this.FindWeaponToRepair();
+                // Apparel is fully repaired
+                this.StopRepairing();
+                this.StartRepairing();
             }
 
-            if (this.BeingRepaird != null)
+            if (this.beingRepaird != null)
             {
-                this.BeingRepaird.HitPoints += 1;
+                this.beingRepaird.HitPoints += 1;
 
                 float generatedHeat = GenTemperature.ControlTemperatureTempChange(
                     base.Position, base.Map, 10, float.MaxValue);
@@ -167,8 +158,8 @@ namespace WeaponStorage
                     this.AttachedWeaponStorages.Remove(n);
                 }
                 else if (
-                    next != null &&
-                    n.Value.settings.Priority < next.Value.settings.Priority)
+                    n.Next != null &&
+                    n.Value.settings.Priority < n.Next.Value.settings.Priority)
                 {
                     isSorted = false;
                 }
@@ -180,152 +171,106 @@ namespace WeaponStorage
                 LinkedList<Building_WeaponStorage> ordered = new LinkedList<Building_WeaponStorage>();
                 for (n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
                 {
-                    Building_WeaponStorage ws = n.Value;
+                    Building_WeaponStorage s = n.Value;
                     bool inserted = false;
                     for (LinkedListNode<Building_WeaponStorage> o = ordered.First; o != null; o = o.Next)
                     {
-                        if (ws.settings.Priority > o.Value.settings.Priority)
+                        if (s.settings.Priority > o.Value.settings.Priority)
                         {
-                            ordered.AddBefore(o, ws);
+                            ordered.AddBefore(o, s);
                             inserted = true;
                             break;
                         }
                     }
                     if (!inserted)
                     {
-                        ordered.AddLast(ws);
+                        ordered.AddLast(s);
                     }
                 }
                 this.AttachedWeaponStorages.Clear();
                 this.AttachedWeaponStorages = ordered;
-
-                Log.Warning("WS New Order:");
-                foreach(Building_WeaponStorage ws in this.AttachedWeaponStorages)
+#if DEBUG
+                Log.Warning("CD New Order:");
+                foreach (Building_Dresser d in this.AttachedDressers)
                 {
-                    Log.Warning(" " + ws.Label + " " + ws.settings.Priority);
+                    Log.Warning(" " + d.Label + " " + d.settings.Priority);
                 }
+#endif
             }
         }
 
-        private ThingWithComps FindWeaponToRepair()
+        private void StartRepairing()
         {
-            try
+#if AUTO_MENDER
+            Log.Warning("Begin RepairChangeDresser.StartRepairing");
+            Log.Message("    Currently Being Repaired:");
+            foreach(Apparel a in AllApparelBeingRepaired)
             {
-                PawnLookupUtil.Initialize();
-                // Try to repair equiped weapons
-                foreach (Pawn p in PawnLookupUtil.PlayerPawns)
-                {
-                    if (!p.Drafted)
-                    {
-                        ThingWithComps t = p.equipment.Primary;
-                        if (t != null && (t.def.IsMeleeWeapon || t.def.IsRangedWeapon))
-                        {
-                            if (t.HitPoints < t.MaxHitPoints)
-                            {
-                                this.AssignedTo = p;
-                                return t;
-                            }
-                        }
-                    }
-                }
-
-                // Try to repair assigned weapons
-                foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons)
-                {
-                    foreach (ThingWithComps w in c.Weapons)
-                    {
-                        if (w.HitPoints < w.MaxHitPoints)
-                        {
-                            if (PawnLookupUtil.TryGetPawn(c.PawnId, out this.AssignedTo))
-                            {
-                                return w;
-                            }
-                        }
-                    }
-                }
-
-                // Find weapons in storage
-                this.OrderAttachedWeaponStorages();
-                for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
-                {
-                    Building_WeaponStorage d = n.Value;
-                    foreach (ThingWithComps twc in d.StoredWeapons)
-                    {
-                        if (twc.HitPoints < twc.MaxHitPoints)
-                        {
-                            d.RemoveNoDrop(twc);
-                            return twc;
-                        }
-                    }
-                }
+                Log.Message("        " + a.Label);
             }
-            finally
-            {
-                PawnLookupUtil.Clear();
-            }
-            return null;
-        }
-
-        private void PlaceWeaponInStorage()
-        {
-            if (this.BeingRepaird == null)
-            {
-                return;
-            }
-
-            if (this.AssignedTo != null)
-            {
-                this.BeingRepaird = null;
-                this.AssignedTo = null;
-                return;
-            }
-
-            Building_WeaponStorage WeaponStorageToUse = null;
+#endif
             this.OrderAttachedWeaponStorages();
+            foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons.Values)
+            {
+                foreach (ThingWithComps w in c.Weapons)
+                {
+                    if (w.HitPoints < w.MaxHitPoints &&
+                        !AllWeaponsBeingRepaired.Contains(w))
+                    {
+                        this.beingRepaird = w;
+                        this.container = c;
+                        AllWeaponsBeingRepaired.AddLast(w);
+#if AUTO_MENDER
+                        Log.Warning("End RepairChangeDresser.StartRepairing -- " + a.Label);
+#endif
+                        return;
+                    }
+                }
+            }
             for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
             {
-                Building_WeaponStorage d = n.Value;
-                if (d.settings.AllowedToAccept(this.BeingRepaird))
+                Building_WeaponStorage ws = n.Value;
+                foreach (ThingWithComps w in ws.StoredWeapons)
                 {
-                    WeaponStorageToUse = d;
+                    if (w.HitPoints < w.MaxHitPoints &&
+                        !AllWeaponsBeingRepaired.Contains(w))
+                    {
+                        this.beingRepaird = w;
+                        this.container = null;
+                        AllWeaponsBeingRepaired.AddLast(w);
+#if AUTO_MENDER
+                        Log.Warning("End RepairChangeDresser.StartRepairing -- " + a.Label);
+#endif
+                        return;
+                    }
                 }
             }
-
-            if (WeaponStorageToUse != null)
-            {
-                WeaponStorageToUse.AddWeapon(this.BeingRepaird);
-            }
-            else
-            {
-                BuildingUtil.DropThing(this.BeingRepaird, this, this.CurrentMap, false);
-            }
-            this.BeingRepaird = null;
+#if AUTO_MENDER
+            Log.Warning("End RepairChangeDresser.StartRepairing -- No new repairs to start");
+#endif
         }
 
-        public override void ExposeData()
+        private void StopRepairing()
         {
-            base.ExposeData();
-
-            if (Scribe.mode == LoadSaveMode.Saving && this.AssignedTo != null)
+            if (this.beingRepaird != null)
             {
-                return;
+                AllWeaponsBeingRepaired.Remove(this.beingRepaird);
+                this.beingRepaird = null;
+                this.container = null;
             }
-
-            Scribe_Deep.Look(ref this.BeingRepaird, "beingRepaired", new object[0]);
         }
 
-        public void AddWeaponStorage(Building_WeaponStorage ws)
+        public void Add(Building_WeaponStorage s)
         {
-            if (this.AttachedWeaponStorages.Contains(ws))
+            if (!this.AttachedWeaponStorages.Contains(s))
             {
-                return;
+                this.AttachedWeaponStorages.AddLast(s);
             }
-            this.AttachedWeaponStorages.AddLast(ws);
         }
 
-        public void RemoveWeaponStorage(Building_WeaponStorage ws)
+        public void Remove(Building_WeaponStorage s)
         {
-            this.AttachedWeaponStorages.Remove(ws);
+            this.AttachedWeaponStorages.Remove(s);
         }
     }
 }

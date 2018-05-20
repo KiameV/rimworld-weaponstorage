@@ -6,50 +6,62 @@ namespace WeaponStorage
 {
     public class AssignedWeaponContainer : IExposable
     {
-        public string PawnId = "";
-        public ThingWithComps LastWeaponUsed = null;
-        public ThingWithComps LastToolUsed = null;
+        public List<ThingWithComps> Weapons = new List<ThingWithComps>();
+        public Pawn Pawn;
+        private ThingWithComps LastWeaponUsed = null;
+        private ThingWithComps LastToolUsed = null;
 
-        private LinkedList<ThingWithComps> weapons = new LinkedList<ThingWithComps>();
-        public IEnumerable<ThingWithComps> Weapons
-        {
-            get { return this.weapons; }
-            set
-            {
-                this.weapons.Clear();
-                foreach (ThingWithComps t in value)
-                    this.Add(t);
-#if DEBUG
-                Log.Warning(this.GetType().Name + ".Weapons_set Count: " + this.weapons.Count);
-#endif
-            }
-        }
-        public int Count { get { return this.weapons.Count; } }
-
-        private List<ThingWithComps> tmp = null;
+        private List<AssignedWeapon> tmp;
         public void ExposeData()
         {
+#if ASSIGNED_WEAPONS
+            Log.Warning("AssignedWeaponContainer.ExposeData: " + Scribe.mode);
+#endif
             if (Scribe.mode == LoadSaveMode.Saving)
             {
-                this.tmp = new List<ThingWithComps>(this.weapons);
+                this.tmp = new List<AssignedWeapon>(this.Weapons.Count);
+                ThingWithComps primary = this.Pawn.equipment.Primary;
+#if ASSIGNED_WEAPONS
+                Log.Message("    Primary: " + ((primary == null) ? "<null>" : primary.Label));
+                Log.Message("    Creating tmp:");
+#endif
+                foreach (ThingWithComps w in this.Weapons)
+                {
+                    AssignedWeapon aw = new AssignedWeapon();
+                    aw.IsEquipped = primary == w;
+                    aw.Weapon = w;
+#if ASSIGNED_WEAPONS
+                    Log.Message("        " + ((aw.Weapon == null) ? "<null>" : aw.Weapon.Label) + "    IsEquipped: " + aw.IsEquipped);
+#endif
+                    tmp.Add(aw);
+                }
             }
 
-            Scribe_Values.Look(ref this.PawnId, "pawn", "", true);
+            Scribe_References.Look(ref this.Pawn, "pawn");
             Scribe_Collections.Look(ref this.tmp, "weapons", LookMode.Deep, new object[0]);
-            Scribe_References.Look(ref this.LastWeaponUsed, "weaponUsedBeforeDowned", false);
+            Scribe_References.Look(ref this.LastWeaponUsed, "lastWeaponUsed", false);
             Scribe_References.Look(ref this.LastToolUsed, "lastToolUsed", false);
 
-            if (Scribe.mode == LoadSaveMode.Saving)
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
-                this.tmp.Clear();
-                this.tmp = null;
+                this.Weapons.Clear();
+                foreach (AssignedWeapon aw in this.tmp)
+                {
+                    this.Weapons.Add(aw.Weapon);
+                }
             }
 
-            else if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            if (Scribe.mode == LoadSaveMode.Saving || Scribe.mode == LoadSaveMode.PostLoadInit)
             {
-                this.weapons.Clear();
-                this.Weapons = this.tmp;
+                if (this.tmp != null)
+                {
+                    this.tmp.Clear();
+                    this.tmp = null;
+                }
             }
+#if ASSIGNED_WEAPONS
+            Log.Warning("End AssignedWeaponContainer.ExposeData: " + Scribe.mode);
+#endif
         }
 
         public void Add(ThingWithComps weapon)
@@ -57,31 +69,72 @@ namespace WeaponStorage
 #if DEBUG
             Log.Warning(this.GetType().Name + ".Remove(" + weapon.Label + ")");
 #endif
-            if (this.weapons.Contains(weapon))
+            if (this.Weapons.Contains(weapon))
             {
 #if DEBUG
                 Log.Warning("    Contains: " + weapon.Label + ")");
 #endif
                 return;
             }
+            this.Weapons.Add(weapon);
+        }
 
-            bool isTool = Settings.IsTool(weapon);
-            if (isTool)
+        public bool TryGetLastThingUsed(Pawn pawn, out ThingWithComps t)
+        {
+#if LAST_THING_USED
+            Log.Warning("Begin AssignedWeaponContainer.TryGetLastThingUsed " + pawn.Name.ToStringShort);
+#endif
+            bool result = false;
+            if (pawn.Drafted)
             {
-                this.weapons.AddLast(weapon);
+                t = this.LastWeaponUsed;
             }
             else
             {
-                this.weapons.AddFirst(weapon);
+                t = this.LastToolUsed;
             }
+
+            if (t != null)
+            {
+                if (this.Weapons.Contains(t))
+                {
+                    result = true;
+                }
+                else
+                {
+                    this.SetLastThingUsed(pawn, null);
+                }
+            }
+            if (!result)
+                t = null;
+            
+#if LAST_THING_USED
+            Log.Message("    Last Tool Used: " + ((this.LastToolUsed == null) ? "<null>" : this.LastToolUsed.Label));
+            Log.Message("    Last Weapon Used: " + ((this.LastWeaponUsed == null) ? "<null>" : this.LastWeaponUsed.Label));
+            Log.Warning("End AssignedWeaponContainer.TryGetLastThingUsed -- " + result + " " + ((t == null) ? "<null>" : t.Label));
+#endif
+            return result;
         }
 
-        public void Clear()
+        public void SetLastThingUsed(Pawn pawn, ThingWithComps t)
         {
-#if DEBUG
-            Log.Warning(this.GetType().Name + ".Clear");
+#if LAST_THING_USED
+            Log.Warning("Begin AssignedWeaponContainer.SetLastThingUsed " + pawn.Name.ToStringShort + " " + t.Label);
 #endif
-            this.weapons.Clear();
+            if (pawn.Drafted || !Settings.IsTool(t))
+            {
+                this.LastWeaponUsed = t;
+            }
+            
+            if (!pawn.Drafted)
+            {
+                this.LastToolUsed = t;
+            }
+#if LAST_THING_USED
+            Log.Message("    Last Tool Used: " + ((this.LastToolUsed == null) ? "<null>" : this.LastToolUsed.Label));
+            Log.Message("    Last Weapon Used: " + ((this.LastWeaponUsed == null) ? "<null>" : this.LastWeaponUsed.Label));
+            Log.Warning("End AssignedWeaponContainer.SetLastThingUsed");
+#endif
         }
 
         public bool Remove(ThingWithComps weapon)
@@ -97,7 +150,31 @@ namespace WeaponStorage
             {
                 this.LastWeaponUsed = null;
             }
-            return this.weapons.Remove(weapon);
+            return this.Weapons.Remove(weapon);
+        }
+        
+        private class AssignedWeapon : IExposable
+        {
+            public bool IsEquipped = false;
+            public ThingWithComps Weapon = null;
+            public void ExposeData()
+            {
+                Scribe_Values.Look(ref IsEquipped, "isEquipped", false);
+                if (IsEquipped)
+                {
+#if ASSIGNED_WEAPONS
+                    Log.Warning("AssignedWeapon.Expose: " + ((this.Weapon == null) ? "<null>" : Weapon.Label) + " as Reference");
+#endif
+                    Scribe_References.Look(ref Weapon, "weapon");
+                }
+                else
+                {
+#if ASSIGNED_WEAPONS
+                    Log.Warning("AssignedWeapon.Expose: " + ((this.Weapon == null) ? "<null>" : Weapon.Label) + " as Deep");
+#endif
+                    Scribe_Deep.Look(ref Weapon, "weapon", null);
+                }
+            }
         }
     }
 }

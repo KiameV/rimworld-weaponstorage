@@ -17,7 +17,7 @@ namespace WeaponStorage
         {
             var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-            
+
             Log.Message(
                 "WeaponStorage Harmony Patches:" + Environment.NewLine +
                 "  Prefix:" + Environment.NewLine +
@@ -25,6 +25,8 @@ namespace WeaponStorage
                 "    Dialog_FormCaravan.PostOpen" + Environment.NewLine +
                 "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int)" + Environment.NewLine +
                 "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int, int)" + Environment.NewLine +
+                "    MakeUndowned - Priority First" + Environment.NewLine +
+                "    Pawn.Kill - Priority First" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
                 "    Pawn_DraftController.GetGizmos" + Environment.NewLine +
                 "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
@@ -33,28 +35,27 @@ namespace WeaponStorage
                 "    ReservationManager.CanReserve" + Environment.NewLine +
                 "    CaravanFormingUtility.StopFormingCaravan" + Environment.NewLine +
                 "    Pawn_DraftController.Drafted { set; }" + Environment.NewLine +
-                "    WealthWatcher.ForceRecount");
+                "    WealthWatcher.ForceRecount" + Environment.NewLine +
+                "    MakeDowned - Priority First" + Environment.NewLine +
+                "    Pawn.Kill - Priority First");// + Environment.NewLine +
+                //"    Pawn_EquipmentTracker.TryDropEquipment - Priority First");
         }
     }
 
     static class HarmonyPatchUtil
     {
-        public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer weapons)
+        public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
         {
-#if DEBUG
-            Log.Warning("HarmonyPatchUtil.EquipWeapon " + weapon.Label + " " + pawn.Name.ToStringShort + " " + weapons.Count);
-#endif
-            ThingWithComps p = pawn.equipment.Primary;
-            if (p != null)
+            ThingWithComps primary = pawn.equipment.Primary;
+            if (primary != null)
             {
-                pawn.equipment.Remove(p);
-                weapons.Add(p);
+                pawn.equipment.Remove(primary);
+                if (!c.Weapons.Contains(primary))
+                {
+                    c.Weapons.Add(primary);
+                }
             }
-
-            if (weapons.Remove(weapon))
-            {
-                pawn.equipment.AddEquipment(weapon);
-            }
+            pawn.equipment.AddEquipment(weapon);
         }
     }
 
@@ -65,59 +66,127 @@ namespace WeaponStorage
         {
             Pawn pawn = __instance.pawn;
             AssignedWeaponContainer weapons;
-            if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out weapons))
+            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out weapons))
             {
-                if (pawn.Drafted)
+                ThingWithComps w;
+                if (weapons.TryGetLastThingUsed(pawn, out w))
                 {
-                    // Going combat
-                    if (weapons.LastWeaponUsed != null)
-                    {
-                        HarmonyPatchUtil.EquipWeapon(weapons.LastWeaponUsed, pawn, weapons);
-                    }
-                }
-                else
-                {
-                    // Going civilian
-                    if (weapons.LastToolUsed != null)
-                    {
-                        HarmonyPatchUtil.EquipWeapon(weapons.LastToolUsed, pawn, weapons);
-                    }
+                    HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
                 }
             }
         }
     }
 
+    /*[HarmonyPatch(typeof(Pawn_EquipmentTracker), "AddEquipment")]
+    static class Patch_Pawn_AddEquipment
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
+        {
+            Pawn pawn = (Pawn)__instance.GetType().GetField(
+                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
+#if TRY_ADD_EQUIPMENT
+            Log.Warning("Begin Pawn_EquipmentTracker.AddEquipment " + pawn.Name.ToStringShort);
+#endif
+            AssignedWeaponContainer c;
+            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
+            {
+                c.Add(newEq);
+                c.SetLastThingUsed(pawn, newEq);
+#if TRY_ADD_EQUIPMENT
+                Log.Message("    Assigned Weapons After Add:");
+                foreach (ThingWithComps w in c.Weapons)
+                {
+                    Log.Warning("        " + w.Label);
+                }
+#endif
+            }
+#if TRY_ADD_EQUIPMENT
+            Log.Warning("End Pawn_EquipmentTracker.AddEquipment");
+#endif
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
+    static class Patch_Pawn_TryDropEquipment
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(ref bool __result, Pawn_EquipmentTracker __instance, ref ThingWithComps resultingEq)
+        {
+            Pawn pawn = (Pawn)__instance.GetType().GetField(
+                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
+#if TRY_DROP_EQUIPMENT
+            Log.Warning("Begin Pawn_EquipmentTracker.TryDropEquipment " + pawn.Name.ToStringShort);
+#endif
+            if (__result && resultingEq != null)
+            {
+                AssignedWeaponContainer c;
+                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
+                {
+                    c.Remove(resultingEq);
+
+#if TRY_DROP_EQUIPMENT
+                    Log.Message("    Assigned Weapons After Drop:");
+                    foreach (ThingWithComps w in c.Weapons)
+                    {
+                        Log.Warning("        " + w.Label);
+                    }
+#endif
+                    }
+                }
+#if TRY_DROP_EQUIPMENT
+            Log.Warning("End Pawn_EquipmentTracker.TryDropEquipment");
+#endif
+        }
+    }*/
+
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
     static class Patch_Pawn_HealthTracker_MakeDowned
     {
+        [HarmonyPriority(Priority.First)]
         static void Prefix(Pawn_HealthTracker __instance)
         {
             Pawn pawn = (Pawn)__instance.GetType().GetField(
                 "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
+#if DOWNED
+            Log.Warning("Begin MakeDowned.Postfix: " + pawn.Name.ToStringShort);
+#endif
             if (pawn != null &&
                 !__instance.Downed &&
                 pawn.Faction == Faction.OfPlayer && 
                 pawn.def.race.Humanlike)
             {
                 ThingWithComps primary = pawn.equipment.Primary;
-                if (primary != null &&
-                    (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
+#if DOWNED
+                Log.Message("    Primary: " + ((primary != null) ? primary.Label : "<null>"));
+#endif
+                if (primary != null)
                 {
                     AssignedWeaponContainer c;
-                    if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c))
+                    if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
                     {
-                        c.Add(primary);
+#if DOWNED
+                        Log.Message("    Assigned Weapons Count: " + c.Weapons.Count);
+#endif
+                        foreach (ThingWithComps w in c.Weapons)
+                        {
+                            Log.Message("        " + w.Label);
+                        }
                         pawn.equipment.Remove(primary);
                     }
                 }
             }
+#if DOWNED
+            Log.Warning("End MakeDowned.Prefix: " + pawn.Name.ToStringShort);
+#endif
         }
     }
 
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeUndowned")]
     static class Patch_Pawn_HealthTracker_MakeUndowned
     {
-        static void Postfix(Pawn_HealthTracker __instance)
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Pawn_HealthTracker __instance)
         {
             Pawn pawn = (Pawn)__instance.GetType().GetField(
                 "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
@@ -126,12 +195,13 @@ namespace WeaponStorage
                 pawn.def.race.Humanlike)
             {
                 AssignedWeaponContainer c;
-                if (WorldComp.TryGetAssignedWeapons(pawn.ThingID, out c) &&
+                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c) &&
                     pawn.equipment.Primary == null)
                 {
-                    if (c.LastWeaponUsed != null && c.Remove(c.LastWeaponUsed))
+                    ThingWithComps w;
+                    if (c.TryGetLastThingUsed(pawn, out w))
                     {
-                        pawn.equipment.AddEquipment(c.LastWeaponUsed);
+                        HarmonyPatchUtil.EquipWeapon(w, pawn, c);
                     }
                 }
             }
@@ -258,7 +328,7 @@ namespace WeaponStorage
         }
     }
 
-    #region Caravan Forming
+#region Caravan Forming
     [HarmonyPatch(typeof(Dialog_FormCaravan), "PostOpen")]
     static class Patch_Dialog_FormCaravan_PostOpen
     {
@@ -332,9 +402,9 @@ namespace WeaponStorage
             }
         }
     }
-    #endregion
+#endregion
 
-    #region Handle "Do until X" for stored weapons
+#region Handle "Do until X" for stored weapons
     [HarmonyPatch(typeof(RecipeWorkerCounter), "CountProducts")]
     static class Patch_RecipeWorkerCounter_CountProducts
     {
@@ -357,5 +427,40 @@ namespace WeaponStorage
             }
         }
     }
-    #endregion
+#endregion
+
+#region Pawn Death
+    [HarmonyPatch(typeof(Pawn), "Kill")]
+    static class Patch_Pawn_Kill
+    {
+        private static Map map;
+
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Pawn __instance)
+        {
+            map = __instance.Map;
+        }
+
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(Pawn __instance)
+        {
+            if (__instance.Dead)
+            {
+                AssignedWeaponContainer c;
+                if (WorldComp.AssignedWeapons.TryGetValue(__instance, out c))
+                {
+                    WorldComp.AssignedWeapons.Remove(__instance);
+
+                    foreach (ThingWithComps w in c.Weapons)
+                    {
+                        if (!WorldComp.Add(w))
+                        {
+                            BuildingUtil.DropThing(w, __instance.Position, map, true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endregion
 }

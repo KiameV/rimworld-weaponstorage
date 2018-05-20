@@ -9,6 +9,7 @@ namespace WeaponStorage.UI
     [StaticConstructorOnStartup]
     public class AssignUI : Window
     {
+        #region Textures
         static AssignUI()
         {
             DropTexture = ContentFinder<Texture2D>.Get("UI/drop", true);
@@ -20,8 +21,6 @@ namespace WeaponStorage.UI
             noSellTexture = ContentFinder<Texture2D>.Get("UI/nosell", true);
         }
 
-        private readonly Building_WeaponStorage weaponStorage;
-
         public static Texture2D DropTexture;
         public static Texture2D UnknownWeaponIcon;
         public static Texture2D assignweaponsTexture;
@@ -29,44 +28,17 @@ namespace WeaponStorage.UI
         public static Texture2D collectTexture;
         public static Texture2D yesSellTexture;
         public static Texture2D noSellTexture;
+        #endregion
 
-        private Pawn selectedPawn = null;
-        private List<WeaponSelected> PossibleWeapons = null;
+        private readonly Building_WeaponStorage weaponStorage;
+
+        
+        private AssignedWeaponContainer assignedWeapons = null;
+
+        private List<ThingWithComps> PossibleWeapons = null;
+        private List<Pawn> selectablePawns = new List<Pawn>();
 
         private Vector2 scrollPosition = new Vector2(0, 0);
-
-        /*private static List<Pawn> selectablePawns = null;
-        public static List<Pawn> PlayerPawns
-        {
-            get
-            {
-                if (selectablePawns == null)
-                {
-                    selectablePawns = new List<Pawn>();
-                    Dictionary<string, Pawn> pawnLookup = new Dictionary<string, Pawn>();
-                    foreach (Pawn p in PawnsFinder.AllMapsWorldAndTemporary_Alive)
-                    {
-                        if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
-                        {
-                            selectablePawns.Add(p);
-                            pawnLookup.Add(p.ThingID, p);
-                        }
-                    }
-
-                    for (int i = WorldComp.AssignedWeapons.Count - 1; i >= 0; --i)
-                    {
-                        AssignedWeaponContainer c = WorldComp.AssignedWeapons[i];
-                        Pawn cPawn;
-                        if (!pawnLookup.TryGetValue(c.PawnId, out cPawn) || cPawn.Dead)
-                        {
-                            this.weaponStorage.AddWeapons(c.Weapons);
-                            WorldComp.AssignedWeapons.RemoveAt(i);
-                        }
-                    }
-                }
-                return selectablePawns;
-            }
-        }*/
 
         public AssignUI(Building_WeaponStorage weaponStorage)
         {
@@ -80,8 +52,13 @@ namespace WeaponStorage.UI
             this.absorbInputAroundWindow = true;
             this.forcePause = true;
 
-            PawnLookupUtil.Initialize();
-            CleanupAssignedWeapons();
+            foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Colonists)
+            {
+                if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
+                {
+                    selectablePawns.Add(p);
+                }
+            }
         }
 
         public override Vector2 InitialSize
@@ -92,18 +69,41 @@ namespace WeaponStorage.UI
             }
         }
 
-        private void CleanupAssignedWeapons()
+        private void RebuildPossibleWeapons()
         {
-            for (int i = WorldComp.AssignedWeapons.Count - 1; i >= 0; --i)
+            if (this.PossibleWeapons != null)
             {
-                AssignedWeaponContainer c = WorldComp.AssignedWeapons[i];
-                Pawn cPawn;
-                if (!PawnLookupUtil.TryGetPawn(c.PawnId, out cPawn) || cPawn.Dead)
+                this.PossibleWeapons.Clear();
+                this.PossibleWeapons = null;
+            }
+            
+            int size;
+            if (this.assignedWeapons != null)
+            {
+                size = this.weaponStorage.Count;
+            }
+            else
+            {
+                size = this.assignedWeapons.Weapons.Count + this.weaponStorage.Count;
+            }
+
+            this.PossibleWeapons = new List<ThingWithComps>(size);
+            if (this.assignedWeapons != null)
+            {
+                foreach (ThingWithComps w in this.assignedWeapons.Weapons)
                 {
-                    this.weaponStorage.AddWeapons(c.Weapons);
-                    WorldComp.AssignedWeapons.RemoveAt(i);
+                    this.PossibleWeapons.Add(w);
                 }
             }
+            foreach (ThingWithComps w in this.weaponStorage.StoredWeapons)
+            {
+                this.PossibleWeapons.Add(w);
+            }
+        }
+
+        private bool IsAssignedWeapon(int i)
+        {
+            return this.assignedWeapons != null && i < this.assignedWeapons.Weapons.Count;
         }
 
 #if TRACE
@@ -119,60 +119,22 @@ namespace WeaponStorage.UI
             try
             {
                 Widgets.Label(new Rect(0, 0, 150, 30), "WeaponStorage.AssignTo".Translate());
-                string label = (this.selectedPawn != null) ? this.selectedPawn.NameStringShort : "Pawn";
+                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.NameStringShort : "Pawn";
                 if (Widgets.ButtonText(new Rect(175, 0, 150, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
-                    foreach (Pawn p in PawnLookupUtil.PlayerPawns)
+                    foreach (Pawn p in this.selectablePawns)
                     {
                         options.Add(new FloatMenuOption(p.Name.ToStringShort, delegate
                         {
-                            if (this.selectedPawn != null)
+                            if (!WorldComp.AssignedWeapons.TryGetValue(p, out this.assignedWeapons))
                             {
-#if DEBUG
-                                Log.Warning(this.GetType().Name + ".DoWindowContents change pawn from " + this.selectedPawn.Name.ToStringShort + " to " + p.Name.ToStringShort);
-#endif
-                                this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
+                                this.assignedWeapons = new AssignedWeaponContainer();
+                                this.assignedWeapons.Pawn = p;
+                                WorldComp.AssignedWeapons.Add(p, this.assignedWeapons);
                             }
 
-                            if (this.PossibleWeapons != null)
-                            {
-                                this.PossibleWeapons.Clear();
-                            }
-
-                            this.PossibleWeapons = null;
-
-                            this.selectedPawn = p;
-
-                            int size;
-                            AssignedWeaponContainer c;
-                            if (!WorldComp.TryGetAssignedWeapons(p.ThingID, out c))
-                            {
-                                size = this.weaponStorage.Count + 1;
-                                c = null;
-                            }
-                            else
-                            {
-                                size = c.Count + this.weaponStorage.Count + 1;
-                            }
-
-                            this.PossibleWeapons = new List<WeaponSelected>(size);
-                            ThingWithComps primary = p.equipment.Primary;
-                            if (primary != null)
-                            {
-                                this.PossibleWeapons.Add(new WeaponSelected(primary, true));
-                            }
-                            if (c != null)
-                            {
-                                foreach (ThingWithComps t in c.Weapons)
-                                {
-                                    this.PossibleWeapons.Add(new WeaponSelected(t, true));
-                                }
-                            }
-                            foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
-                            {
-                                this.PossibleWeapons.Add(new WeaponSelected(t, false));
-                            }
+                            this.RebuildPossibleWeapons();
                         }, MenuOptionPriority.Default, null, null, 0f, null, null));
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
@@ -184,25 +146,72 @@ namespace WeaponStorage.UI
                 Rect r = new Rect(0, 20, 384, (count + 1) * (HEIGHT + BUFFER));
                 scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 400, 400), scrollPosition, r);
 
-                if (this.selectedPawn != null && this.PossibleWeapons != null)
+                if (this.PossibleWeapons != null)
                 {
                     for (int i = 0; i < this.PossibleWeapons.Count; ++i)
                     {
                         GUI.BeginGroup(new Rect(0, 55 + i * (HEIGHT + BUFFER), r.width, HEIGHT));
-                        WeaponSelected weapon = this.PossibleWeapons[i];
+                        ThingWithComps weapon = this.PossibleWeapons[i];
 
-                        bool isChecked = weapon.isChecked;
-                        Widgets.Checkbox(0, (HEIGHT - 20) / 2, ref isChecked, 20);
-                        weapon.isChecked = isChecked;
+                        if (this.assignedWeapons != null)
+                        {
+                            bool isChecked = this.IsAssignedWeapon(i);
+                            bool backup = isChecked;
+                            Widgets.Checkbox(0, (HEIGHT - 20) / 2, ref isChecked, 20);
+                            if (isChecked != backup)
+                            {
+                                if (this.IsAssignedWeapon(i))
+                                {
+                                    if (this.assignedWeapons.Weapons.Remove(weapon))
+                                    {
+                                        if (!this.weaponStorage.AddWeapon(weapon) &&
+                                            !WorldComp.Add(weapon))
+                                        {
+                                            BuildingUtil.DropThing(weapon, this.assignedWeapons.Pawn.Position, this.assignedWeapons.Pawn.Map, false);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Log.Error("Unable to remove weapon " + weapon);
+                                    }
+                                }
+                                else
+                                {
+                                    if (this.weaponStorage.RemoveNoDrop(weapon))
+                                    {
+                                        this.assignedWeapons.Add(weapon);
+                                    }
+                                    else
+                                    {
+                                        Log.Error("Unable to remove weapon " + weapon);
+                                    }
+                                }
+                                this.RebuildPossibleWeapons();
+                                break;
+                            }
+                        }
 
-                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), weapon.thing);
+                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), weapon);
 
-                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), weapon.thing.Label);
+                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), weapon.Label);
 
                         if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
                         {
-                            this.PossibleWeapons.RemoveAt(i);
-                            this.weaponStorage.Remove(weapon.thing);
+                            if (this.IsAssignedWeapon(i))
+                            {
+                                if (!this.assignedWeapons.Remove(weapon))
+                                {
+                                    Log.Error("Unable to drop assigned weapon");
+                                }
+                            }
+                            else
+                            {
+                                if (!this.weaponStorage.Remove(weapon))
+                                {
+                                    Log.Error("Unable to remove weapon " + weapon);
+                                }
+                            }
+                            this.RebuildPossibleWeapons();
                             break;
                         }
                         this.PossibleWeapons[i] = weapon;
@@ -255,124 +264,7 @@ namespace WeaponStorage.UI
             {
                 Text.Anchor = TextAnchor.UpperLeft;
                 GUI.color = Color.white;
-#if TRACE
-                if (i > 600)
-                {
-                    i = 0;
-                }
-#endif
             }
-        }
-
-        public override void PostClose()
-        {
-            base.PostClose();
-            this.SetAssignedWeapons(this.selectedPawn, this.PossibleWeapons);
-
-            PawnLookupUtil.Clear();
-        }
-
-        private void SetAssignedWeapons(Pawn p, List<WeaponSelected> weapons)
-        {
-#if DEBUG
-            Log.Warning(this.GetType().Name + " " + p.Name.ToStringShort + " " + weapons.Count);
-#endif
-            if (p == null || weapons == null)
-            {
-                return;
-            }
-
-            AssignedWeaponContainer c;
-            if (!WorldComp.TryGetAssignedWeapons(p.ThingID, out c))
-            {
-                c = new AssignedWeaponContainer();
-                c.PawnId = p.ThingID;
-                WorldComp.Add(c);
-            }
-
-            foreach(WeaponSelected selected in weapons)
-            {
-                if (selected.isChecked)
-                {
-                    if (this.weaponStorage.RemoveNoDrop(selected.thing)) // This covers the case of primary weapon since the weapon will not be stored
-                    {
-                        c.Add(selected.thing);
-                    }
-                }
-                else // Not Checked
-                {
-                    if (selected.thing == p.equipment.Primary)
-                    {
-                        ThingWithComps t = p.equipment.Primary;
-                        p.equipment.Remove(t);
-                        this.weaponStorage.AddWeapon(t);
-                    }
-                    else // Not Primary
-                    {
-                        if (c.Remove(selected.thing))
-                        {
-                            this.weaponStorage.AddWeapon(selected.thing);
-                        }
-                    }
-                }
-            }
-
-            if (c.Count == 0)
-            {
-#if DEBUG
-                Log.Warning("    Remove from WorldComp");
-#endif
-                WorldComp.AssignedWeapons.Remove(c);
-            }
-            /*
-                        this.weaponStorage.AddWeapons(c.Weapons);
-                        c.Clear();
-
-                        bool primaryFound = false;
-                        ThingWithComps primary = p.equipment.Primary;
-                        foreach (WeaponSelected s in this.PossibleWeapons)
-                        {
-                            if (s.isChecked)
-                            {
-                                if (primary != null && !primaryFound &&
-                                    primary.thingIDNumber == s.thing.thingIDNumber)
-                                {
-                                    primaryFound = true;
-                                }
-                                else
-                                {
-                                    if (this.weaponStorage.RemoveNoDrop(s.thing))
-                                    {
-                                        c.Add(s.thing);
-                                    }
-                                }
-                            }
-                        }
-
-                        if (!primaryFound && primary != null &&
-                            (primary.def.IsMeleeWeapon || primary.def.IsRangedWeapon))
-                        {
-            #if DEBUG
-                            Log.Warning("    Primary: " + primary.Label);
-            #endif
-                            p.equipment.Remove(primary);
-                            this.weaponStorage.AddWeapon(primary);
-                        }
-
-                        if (c.Count == 0)
-                        {
-            #if DEBUG
-                            Log.Warning("    Remove from WorldComp");
-            #endif
-                            WorldComp.AssignedWeapons.Remove(c);
-                        }
-                        else
-                        {
-            #if DEBUG
-                            Log.Warning("    Add to WorldComp");
-            #endif
-                            WorldComp.Add(c);
-                        }*/
         }
     }
 }

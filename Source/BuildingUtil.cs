@@ -37,29 +37,34 @@ namespace WeaponStorage
             try
             {
                 from.AllowAdds = false;
-                DropThing(toDrop, (Building)from, map, makeForbidden);
+                return DropThing(toDrop, (Building)from, map, makeForbidden);
             }
             finally
             {
                 from.AllowAdds = true;
             }
-            return toDrop.Spawned;
         }
 
-        public static void DropThing(Thing toDrop, Building from, Map map, bool makeForbidden = true)
+        public static bool DropThing(Thing toDrop, Building from, Map map, bool makeForbidden = true)
         {
+            return DropThing(toDrop, from.Position, map, makeForbidden);
+        }
+
+        public static bool DropThing(Thing toDrop, IntVec3 from, Map map, bool makeForbidden = true)
+        {
+            bool dropped = false;
             try
             {
                 Thing t;
                 if (!toDrop.Spawned)
                 {
-                    GenThing.TryDropAndSetForbidden(toDrop, from.Position, map, ThingPlaceMode.Near, out t, makeForbidden);
-                    if (!toDrop.Spawned)
+                    dropped = GenThing.TryDropAndSetForbidden(toDrop, from, map, ThingPlaceMode.Near, out t, makeForbidden);
+                    if (!dropped || !toDrop.Spawned)
                     {
-                        GenPlace.TryPlaceThing(toDrop, from.Position, map, ThingPlaceMode.Near);
+                        dropped = GenPlace.TryPlaceThing(toDrop, from, map, ThingPlaceMode.Near);
                     }
                 }
-                if (toDrop.Position.Equals(from.Position))
+                if (toDrop.Position.Equals(from))
                 {
                     IntVec3 pos = toDrop.Position;
                     if (random == null)
@@ -82,6 +87,7 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+            return dropped;
         }
     }
 }

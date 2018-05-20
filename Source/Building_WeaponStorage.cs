@@ -43,7 +43,7 @@ namespace WeaponStorage
 #if DEBUG_REPAIR
                 Log.Warning("Adding Dresser " + this.Label + " to " + r.Label);
 #endif
-                r.AddWeaponStorage(this);
+                r.Add(this);
             }
         }
 
@@ -106,7 +106,7 @@ namespace WeaponStorage
 #if DEBUG_REPAIR
                 Log.Warning("Removing Dresser " + this.Label + " to " + r.Label);
 #endif
-                r.RemoveWeaponStorage(this);
+                r.Remove(this);
             }
         }
 
@@ -188,7 +188,7 @@ namespace WeaponStorage
             }
         }
 
-        internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
+        /*internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
         {
             if (weapons == null)
                 return;
@@ -197,9 +197,9 @@ namespace WeaponStorage
             {
                 this.AddWeapon(w);
             }
-        }
+        }*/
 
-        internal bool AddWeapon(ThingWithComps weapon, bool fromWorldComp = false)
+        internal bool AddWeapon(ThingWithComps weapon)
         {
             if (weapon != null)
             {
@@ -217,16 +217,7 @@ namespace WeaponStorage
                     return true;
                 }
 
-                // Not Allowed
-                if (!fromWorldComp && WorldComp.Add(weapon))
-                {
-                    return true;
-                }
-
-                if (!weapon.Spawned)
-                {
-                    BuildingUtil.DropThing(weapon, this, this.CurrentMap, false);
-                }
+                return WorldComp.Add(weapon);
             }
             return false;
         }
@@ -390,7 +381,7 @@ namespace WeaponStorage
         public override void ExposeData()
         {
             base.ExposeData();
-
+            
             if (Scribe.mode == LoadSaveMode.Saving)
             {
                 this.temp = new List<ThingWithComps>(this.storedWeapons);
@@ -398,7 +389,7 @@ namespace WeaponStorage
 
             Scribe_Collections.Look(ref this.temp, "storedWeapons", LookMode.Deep, new object[0]);
             Scribe_Values.Look<bool>(ref this.includeInTradeDeals, "includeInTradeDeals", true, false);
-
+            
             if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
                 this.storedWeapons.Clear();
@@ -409,8 +400,16 @@ namespace WeaponStorage
                         this.AddToSortedList(t);
                     }
                 }
-                this.temp.Clear();
-                this.temp = null;
+            }
+            
+            if (Scribe.mode == LoadSaveMode.Saving ||
+                Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
+            {
+                if (this.temp != null)
+                {
+                    this.temp.Clear();
+                    this.temp = null;
+                }
             }
         }
 

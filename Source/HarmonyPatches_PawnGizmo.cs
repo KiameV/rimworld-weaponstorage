@@ -17,7 +17,7 @@ namespace WeaponStorage
                 try
                 {
                     AssignedWeaponContainer weapons;
-                    if (WorldComp.TryGetAssignedWeapons(__instance.pawn.ThingID, out weapons))
+                    if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out weapons))
                     {
                         List<Gizmo> l = new List<Gizmo>();
                         if (__result != null)
@@ -47,15 +47,7 @@ namespace WeaponStorage
                                     {
                                         HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
 
-                                        if (pawn.Drafted)
-                                        {
-                                            weapons.LastWeaponUsed = weapon;
-                                        }
-
-                                        if (isTool)
-                                        {
-                                            weapons.LastToolUsed = weapon;
-                                        }
+                                        weapons.SetLastThingUsed(pawn, weapon);
                                     }));
                             }
                         }

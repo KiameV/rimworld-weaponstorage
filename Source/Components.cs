@@ -7,15 +7,15 @@ namespace WeaponStorage
 {
     class WorldComp : WorldComponent
     {
-        public static List<AssignedWeaponContainer> AssignedWeapons = new List<AssignedWeaponContainer>();
+        public static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
 
         public static LinkedList<Building_WeaponStorage> WeaponStoragesToUse { get; private set; }
 
         public WorldComp(World world) : base(world)
         {
-            foreach (AssignedWeaponContainer c in AssignedWeapons)
+            foreach (AssignedWeaponContainer c in AssignedWeapons.Values)
             {
-                c.Clear();
+                c.Weapons.Clear();
             }
             AssignedWeapons.Clear();
 
@@ -26,22 +26,6 @@ namespace WeaponStorage
             else
             {
                 WeaponStoragesToUse.Clear();
-            }
-        }
-
-        public static void Add(AssignedWeaponContainer assignedWeapons)
-        {
-#if DEBUG
-            Log.Warning("WeaponStorage.TryAdd for " + assignedWeapons.PawnId + " Weapon Count: " + assignedWeapons.Count);
-#endif
-            AssignedWeaponContainer c;
-            if (!TryGetAssignedWeapons(assignedWeapons.PawnId, out c))
-            {
-                AssignedWeapons.Add(assignedWeapons);
-            }
-            else
-            {
-                c.Weapons = assignedWeapons.Weapons;
             }
         }
 
@@ -57,7 +41,17 @@ namespace WeaponStorage
         {
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
-                if (ws.AddWeapon(t, true))
+                return ws.AddWeapon(t);
+            }
+            return false;
+        }
+
+        public static bool Drop(ThingWithComps w)
+        {
+            if (WeaponStoragesToUse.Count > 0)
+            {
+                Building_WeaponStorage s = WeaponStoragesToUse.First.Value;
+                if (BuildingUtil.DropThing(w, s, s.Map, false))
                 {
                     return true;
                 }
@@ -116,37 +110,52 @@ namespace WeaponStorage
             WeaponStoragesToUse.Remove(ws);
         }
 
-        public static bool TryGetAssignedWeapons(string pawnId, out AssignedWeaponContainer assignedWeaponContainer)
-        {
-            foreach (AssignedWeaponContainer c in AssignedWeapons)
-            {
-                if (c.PawnId.Equals(pawnId))
-                {
-                    assignedWeaponContainer = c;
-                    return true;
-                }
-            }
-            assignedWeaponContainer = null;
-            return false;
-        }
-
-        public static void Remove(Pawn pawn)
-        {
-            for (int i = 0; i < AssignedWeapons.Count; ++i)
-            {
-                if (AssignedWeapons[i].PawnId.Equals(pawn.ThingID))
-                {
-                    AssignedWeapons.RemoveAt(i);
-                    break;
-                }
-            }
-        }
-
+        private List<AssignedWeaponContainer> tmp = null;
         public override void ExposeData()
         {
             base.ExposeData();
 
-            Scribe_Collections.Look(ref AssignedWeapons, "assignedWeapons", LookMode.Deep, new object[0]);
+            if (Scribe.mode == LoadSaveMode.Saving)
+            {
+                tmp = new List<AssignedWeaponContainer>(AssignedWeapons.Values);
+            }
+
+            Scribe_Collections.Look(ref tmp, "assignedWeapons", LookMode.Deep, new object[0]);
+
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
+                foreach (AssignedWeaponContainer a in tmp)
+                {
+                    if (a.Pawn == null || a.Pawn.Dead)
+                    {
+                        Log.Warning("Unable to load pawn [" + a.Pawn + "]. Re-storing assigned weapons");
+                        if (a.Weapons != null)
+                        {
+                            foreach(ThingWithComps w in a.Weapons)
+                            {
+                                if (!Add(w))
+                                {
+                                    Drop(w);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        AssignedWeapons.Add(a.Pawn, a);
+                    }
+                }
+            }
+
+            if (Scribe.mode == LoadSaveMode.Saving || 
+                Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
+                if (tmp != null)
+                {
+                    tmp.Clear();
+                    tmp = null;
+                }
+            }
         }
 
         public static void SortWeaponStoragesToUse()
