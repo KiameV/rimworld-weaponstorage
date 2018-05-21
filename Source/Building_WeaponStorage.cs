@@ -184,7 +184,11 @@ namespace WeaponStorage
                 if (newItem.Spawned)
                     newItem.DeSpawn();
 
-                this.AddWeapon((ThingWithComps)newItem);
+                if (!this.AddWeapon(newItem as ThingWithComps) && 
+                    !WorldComp.Add(newItem as ThingWithComps))
+                {
+                    BuildingUtil.DropThing(newItem, this, this.CurrentMap, true);
+                }
             }
         }
 
@@ -216,8 +220,6 @@ namespace WeaponStorage
                     }
                     return true;
                 }
-
-                return WorldComp.Add(weapon);
             }
             return false;
         }

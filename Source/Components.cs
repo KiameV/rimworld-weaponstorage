@@ -39,9 +39,12 @@ namespace WeaponStorage
 
         public static bool Add(ThingWithComps t)
         {
-            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            if (t != null)
             {
-                return ws.AddWeapon(t);
+                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+                {
+                    return ws.AddWeapon(t);
+                }
             }
             return false;
         }

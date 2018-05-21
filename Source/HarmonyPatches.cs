@@ -154,26 +154,25 @@ namespace WeaponStorage
             if (pawn != null &&
                 !__instance.Downed &&
                 pawn.Faction == Faction.OfPlayer && 
-                pawn.def.race.Humanlike)
+                pawn.def.race != null && 
+                pawn.def.race.Humanlike && 
+                pawn.equipment != null && 
+                pawn.equipment.Primary != null)
             {
-                ThingWithComps primary = pawn.equipment.Primary;
 #if DOWNED
                 Log.Message("    Primary: " + ((primary != null) ? primary.Label : "<null>"));
 #endif
-                if (primary != null)
+                AssignedWeaponContainer c;
+                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
                 {
-                    AssignedWeaponContainer c;
-                    if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
-                    {
 #if DOWNED
-                        Log.Message("    Assigned Weapons Count: " + c.Weapons.Count);
+                    Log.Message("    Assigned Weapons Count: " + c.Weapons.Count);
 #endif
-                        foreach (ThingWithComps w in c.Weapons)
-                        {
-                            Log.Message("        " + w.Label);
-                        }
-                        pawn.equipment.Remove(primary);
+                    foreach (ThingWithComps w in c.Weapons)
+                    {
+                        Log.Message("        " + w.Label);
                     }
+                    pawn.equipment.Remove(pawn.equipment.Primary);
                 }
             }
 #if DOWNED

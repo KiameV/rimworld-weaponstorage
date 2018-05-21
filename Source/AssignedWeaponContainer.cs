@@ -69,7 +69,7 @@ namespace WeaponStorage
 #if DEBUG
             Log.Warning(this.GetType().Name + ".Remove(" + weapon.Label + ")");
 #endif
-            if (this.Weapons.Contains(weapon))
+            if (weapon == null || this.Weapons.Contains(weapon))
             {
 #if DEBUG
                 Log.Warning("    Contains: " + weapon.Label + ")");

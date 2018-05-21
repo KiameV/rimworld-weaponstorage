@@ -131,6 +131,10 @@ namespace WeaponStorage.UI
                             {
                                 this.assignedWeapons = new AssignedWeaponContainer();
                                 this.assignedWeapons.Pawn = p;
+                                if (p.equipment.Primary != null)
+                                {
+                                    this.assignedWeapons.Add(p.equipment.Primary);
+                                }
                                 WorldComp.AssignedWeapons.Add(p, this.assignedWeapons);
                             }
 
@@ -162,6 +166,10 @@ namespace WeaponStorage.UI
                             {
                                 if (this.IsAssignedWeapon(i))
                                 {
+                                    if (this.assignedWeapons.Pawn.equipment.Primary == weapon)
+                                    {
+                                        this.assignedWeapons.Pawn.equipment.Remove(weapon);
+                                    }
                                     if (this.assignedWeapons.Weapons.Remove(weapon))
                                     {
                                         if (!this.weaponStorage.AddWeapon(weapon) &&
