@@ -1,11 +1,10 @@
 ﻿using RimWorld.Planet;
 using System.Collections.Generic;
 using Verse;
-using System;
 
 namespace WeaponStorage
 {
-    class WorldComp : WorldComponent
+    public class WorldComp : WorldComponent
     {
         public static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
 
