@@ -2,6 +2,7 @@
 using RimWorld;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Verse;
 using WeaponStorage;
@@ -13,13 +14,16 @@ namespace MendingWeaponStoragePatch
     {
         static HarmonyPatches()
         {
-            var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            if (ModsConfig.ActiveModsInLoadOrder.Any(m => "Mending".Equals(m.Name)))
+            {
+                var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
+                harmony.PatchAll(Assembly.GetExecutingAssembly());
 
-            Log.Message(
-                "MendingWeaponStoragePatch Harmony Patches:" + Environment.NewLine +
-                "  Postfix:" + Environment.NewLine +
-                "    WorkGiver_DoBill.TryFindBestBillIngredients - Priority Last");
+                Log.Message(
+                    "MendingWeaponStoragePatch Harmony Patches:" + Environment.NewLine +
+                    "  Postfix:" + Environment.NewLine +
+                    "    WorkGiver_DoBill.TryFindBestBillIngredients - Priority Last");
+            }
         }
     }
 
@@ -49,7 +53,7 @@ namespace MendingWeaponStoragePatch
                         {
                             if (bill.ingredientFilter.Allows(t))
                             {
-                                ws.Remove(t);
+                                ws.Remove(t, false);
                                 if (t.Spawned == false)
                                 {
                                     Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");

@@ -63,12 +63,12 @@ namespace WeaponStorage
             }
         }
 
-        public override void DeSpawn()
+        public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
         {
             try
             {
                 this.Dispose();
-                base.DeSpawn();
+                base.DeSpawn(mode);
             }
             catch (Exception e)
             {
@@ -510,7 +510,7 @@ namespace WeaponStorage
             }
         }
 
-#region Gizmos
+        #region Gizmos
         public override IEnumerable<Gizmo> GetGizmos()
         {
             IEnumerable<Gizmo> enumerables = base.GetGizmos();
@@ -523,64 +523,51 @@ namespace WeaponStorage
 
             int groupKey = "WeaponStorage".GetHashCode();
 
-            Command_Action a = new Command_Action();
-            a.icon = UI.AssignUI.assignweaponsTexture;
-            a.defaultDesc = "WeaponStorage.AssignWeaponsDesc".Translate();
-            a.defaultLabel = "WeaponStorage.AssignWeapons".Translate();
-            a.activateSound = SoundDef.Named("Click");
-            a.action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); };
-            ++groupKey;
-            l.Add(a);
-
-            a = new Command_Action();
-            a.icon = UI.AssignUI.emptyTexture;
-            a.defaultDesc = "WeaponStorage.EmptyDesc".Translate();
-            a.defaultLabel = "WeaponStorage.Empty".Translate();
-            a.activateSound = SoundDef.Named("Click");
-            a.action =
-                delegate
-                {
-                    this.Empty();
-                };
-            ++groupKey;
-            l.Add(a);
-
-            a = new Command_Action();
-            a.icon = UI.AssignUI.collectTexture;
-            a.defaultDesc = "WeaponStorage.CollectDesc".Translate();
-            a.defaultLabel = "WeaponStorage.Collect".Translate();
-            a.activateSound = SoundDef.Named("Click");
-            a.action =
-                delegate
-                {
-                    this.ReclaimWeapons();
-                };
-            a.groupKey = groupKey;
-            ++groupKey;
-            l.Add(a);
-
-            a = new Command_Action();
-            if (this.includeInTradeDeals)
+            l.Add(new Command_Action()
             {
-                a.icon = UI.AssignUI.yesSellTexture;
-            }
-            else
-            {
-                a.icon = UI.AssignUI.noSellTexture;
-            }
-            a.defaultDesc = "WeaponStorage.IncludeInTradeDealsDesc".Translate();
-            a.defaultLabel = "WeaponStorage.IncludeInTradeDeals".Translate();
-            a.activateSound = SoundDef.Named("Click");
-            a.action =
-                delegate
-                {
-                    this.includeInTradeDeals = !this.includeInTradeDeals;
-                };
-            a.groupKey = groupKey;
+                icon = UI.AssignUI.assignweaponsTexture,
+                defaultDesc = "WeaponStorage.AssignWeaponsDesc".Translate(),
+                defaultLabel = "WeaponStorage.AssignWeapons".Translate(),
+                activateSound = SoundDef.Named("Click"),
+                action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); },
+                groupKey = groupKey,
+            });
             ++groupKey;
-            l.Add(a);
 
-            return SaveStorageSettingsUtil.SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
+            l.Add(new Command_Action()
+            {
+                icon = UI.AssignUI.emptyTexture,
+                defaultDesc = "WeaponStorage.EmptyDesc".Translate(),
+                defaultLabel = "WeaponStorage.Empty".Translate(),
+                activateSound = SoundDef.Named("Click"),
+                action = delegate { this.Empty(); },
+                groupKey = groupKey,
+            });
+            ++groupKey;
+
+            l.Add(new Command_Action()
+            {
+                icon = UI.AssignUI.collectTexture,
+                defaultDesc = "WeaponStorage.CollectDesc".Translate(),
+                defaultLabel = "WeaponStorage.Collect".Translate(),
+                activateSound = SoundDef.Named("Click"),
+                action = delegate { this.ReclaimWeapons(); },
+                groupKey = groupKey,
+            });
+            ++groupKey;
+            
+            l.Add(new Command_Action()
+            {
+                icon = (this.includeInTradeDeals) ? UI.AssignUI.yesSellTexture : UI.AssignUI.noSellTexture,
+                defaultDesc = "WeaponStorage.IncludeInTradeDealsDesc".Translate(),
+                defaultLabel = "WeaponStorage.IncludeInTradeDeals".Translate(),
+                activateSound = SoundDef.Named("Click"),
+                action = delegate { this.includeInTradeDeals = !this.includeInTradeDeals; },
+                groupKey = groupKey,
+            });
+            ++groupKey;
+
+            return SaveStorageSettingsUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
         }
 #endregion
 

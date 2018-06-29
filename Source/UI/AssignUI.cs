@@ -46,13 +46,13 @@ namespace WeaponStorage.UI
 
             this.PossibleWeapons = null;
 
-            this.closeOnEscapeKey = true;
+            this.closeOnClickedOutside = true;
             this.doCloseButton = true;
             this.doCloseX = true;
             this.absorbInputAroundWindow = true;
             this.forcePause = true;
 
-            foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Colonists)
+            foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
             {
                 if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
                 {
@@ -119,7 +119,7 @@ namespace WeaponStorage.UI
             try
             {
                 Widgets.Label(new Rect(0, 0, 150, 30), "WeaponStorage.AssignTo".Translate());
-                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.NameStringShort : "Pawn";
+                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "Pawn";
                 if (Widgets.ButtonText(new Rect(175, 0, 150, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();

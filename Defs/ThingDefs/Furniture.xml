@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
-
 	<ThingDef ParentName="FurnitureBase">
 		<defName>WeaponStorage</defName>
 		<label>weapon storage</label>
@@ -93,6 +92,7 @@
 		<graphicData>
 			<texPath>Furniture/RepairWeaponStorage</texPath>
 			<graphicClass>Graphic_Multi</graphicClass>
+			<shaderType>CutoutComplex</shaderType>
 			<drawSize>(1,1)</drawSize>
 			<damageData>
 				<cornerTL>Damage/Corner</cornerTL>
@@ -105,6 +105,7 @@
 		<passability>PassThroughOnly</passability>
 		<fillPercent>0.4</fillPercent>
 		<castEdgeShadows>true</castEdgeShadows>
+		<clearBuildingArea>true</clearBuildingArea>
 		<stuffCategories>
 			<li>Metallic</li>
 			<li>Woody</li>
@@ -112,7 +113,7 @@
 		</stuffCategories>
 		<costStuffCount>20</costStuffCount>
 		<costList>
-			<Component>6</Component>
+			<ComponentIndustrial>6</ComponentIndustrial>
 			<Steel>250</Steel>
 		</costList>
 		<defaultPlacingRot>South</defaultPlacingRot>
@@ -138,7 +139,6 @@
 				<compClass>CompPowerTrader</compClass>
 				<basePowerConsumption>1000</basePowerConsumption>
 				<shortCircuitInRain>true</shortCircuitInRain>
-				<startElectricalFires>true</startElectricalFires>
 			</li>
 			<li Class="CompProperties_Facility">
 				<maxSimultaneous>1</maxSimultaneous>

@@ -27,8 +27,9 @@ namespace WeaponStorage
                 "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int, int)" + Environment.NewLine +
                 "    MakeUndowned - Priority First" + Environment.NewLine +
                 "    Pawn.Kill - Priority First" + Environment.NewLine +
+                "    Verb_ShootOneUse.Notify_EquipmentLost - Priority First" + Environment.NewLine +
+                "    Pawn_EquipmentTracker.MakeRoomFor - Priority First" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
-                "    Pawn_DraftController.GetGizmos" + Environment.NewLine +
                 "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
                 "    TradeShip.ColonyThingsWillingToBuy" + Environment.NewLine +
                 "    Window.PreClose" + Environment.NewLine +
@@ -37,8 +38,7 @@ namespace WeaponStorage
                 "    Pawn_DraftController.Drafted { set; }" + Environment.NewLine +
                 "    WealthWatcher.ForceRecount" + Environment.NewLine +
                 "    MakeDowned - Priority First" + Environment.NewLine +
-                "    Pawn.Kill - Priority First");// + Environment.NewLine +
-                //"    Pawn_EquipmentTracker.TryDropEquipment - Priority First");
+                "    Pawn.Kill - Priority First");
         }
     }
 
@@ -153,10 +153,10 @@ namespace WeaponStorage
 #endif
             if (pawn != null &&
                 !__instance.Downed &&
-                pawn.Faction == Faction.OfPlayer && 
-                pawn.def.race != null && 
-                pawn.def.race.Humanlike && 
-                pawn.equipment != null && 
+                pawn.Faction == Faction.OfPlayer &&
+                pawn.def.race != null &&
+                pawn.def.race.Humanlike &&
+                pawn.equipment != null &&
                 pawn.equipment.Primary != null)
             {
 #if DOWNED
@@ -327,7 +327,8 @@ namespace WeaponStorage
         }
     }
 
-#region Caravan Forming
+
+    #region Caravan Forming
     [HarmonyPatch(typeof(Dialog_FormCaravan), "PostOpen")]
     static class Patch_Dialog_FormCaravan_PostOpen
     {
@@ -338,9 +339,9 @@ namespace WeaponStorage
             {
                 Map map = __instance.GetType().GetField("map", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance) as Map;
 
-                foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(map))
+                foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(map))
                 {
-                    storage.Empty();
+                    s.Empty();
                 }
             }
         }
@@ -352,67 +353,46 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Postfix(Lord lord)
         {
-            foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(lord.Map))
+            foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
             {
-                storage.ReclaimWeapons();
+                s.ReclaimWeapons();
             }
         }
     }
 
     [HarmonyPatch(
         typeof(CaravanExitMapUtility), "ExitMapAndCreateCaravan",
-        new Type[] { typeof(IEnumerable<Pawn>), typeof(Faction), typeof(int), typeof(int) })]
-    static class Patch_CaravanExitMapUtility_ExitMapAndCreateCaravan_1
+        new Type[] { typeof(IEnumerable<Pawn>), typeof(Faction), typeof(int), typeof(int), typeof(int), typeof(bool) })]
+    static class Patch_CaravanExitMapUtility_ExitMapAndCreateCaravan
     {
         [HarmonyPriority(Priority.First)]
-        static void Prefix(IEnumerable<Pawn> pawns, Faction faction, int exitFromTile, int directionTile)
+        static void Prefix(IEnumerable<Pawn> pawns, Faction faction, int exitFromTile, int directionTile, int destinationTile, bool sendMessage)
         {
             if (faction == Faction.OfPlayer)
             {
                 List<Pawn> p = new List<Pawn>(pawns);
                 if (p.Count > 0)
                 {
-                    foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(p[0].Map))
+                    foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
                     {
-                        storage.ReclaimWeapons();
+                        s.ReclaimWeapons();
                     }
                 }
             }
         }
     }
+    #endregion
 
-    [HarmonyPatch(
-        typeof(CaravanExitMapUtility), "ExitMapAndCreateCaravan",
-        new Type[] { typeof(IEnumerable<Pawn>), typeof(Faction), typeof(int) })]
-    static class Patch_CaravanExitMapUtility_ExitMapAndCreateCaravan_2
-    {
-        static void Prefix(IEnumerable<Pawn> pawns, Faction faction, int startingTile)
-        {
-            if (faction == Faction.OfPlayer)
-            {
-                List<Pawn> p = new List<Pawn>(pawns);
-                if (p.Count > 0)
-                {
-                    foreach (Building_WeaponStorage storage in WorldComp.GetWeaponStorages(p[0].Map))
-                    {
-                        storage.ReclaimWeapons();
-                    }
-                }
-            }
-        }
-    }
-#endregion
-
-#region Handle "Do until X" for stored weapons
+    #region Handle "Do until X" for stored weapons
     [HarmonyPatch(typeof(RecipeWorkerCounter), "CountProducts")]
     static class Patch_RecipeWorkerCounter_CountProducts
     {
         static void Postfix(ref int __result, RecipeWorkerCounter __instance, Bill_Production bill)
         {
-            List<ThingCountClass> products = __instance.recipe.products;
+            List<ThingDefCountClass> products = __instance.recipe.products;
             if (WorldComp.WeaponStoragesToUse.Count > 0 && products != null)
             {
-                foreach(ThingCountClass product in products)
+                foreach (ThingDefCountClass product in products)
                 {
                     ThingDef def = product.thingDef;
                     if (def.IsWeapon)
@@ -426,9 +406,9 @@ namespace WeaponStorage
             }
         }
     }
-#endregion
+    #endregion
 
-#region Pawn Death
+    #region Pawn Death
     [HarmonyPatch(typeof(Pawn), "Kill")]
     static class Patch_Pawn_Kill
     {
@@ -462,4 +442,43 @@ namespace WeaponStorage
         }
     }
 #endregion
+
+    [HarmonyPatch(typeof(Verb_ShootOneUse), "Notify_EquipmentLost")]
+    static class Patch_Verb_ShootOneUse_Notify_EquipmentLost
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Verb_ShootOneUse __instance)
+        {
+            foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons.Values)
+            {
+                if (c.Weapons.Remove(__instance.ownerEquipment))
+                {
+                    foreach (ThingWithComps w in c.Weapons)
+                    {
+                        if (w.def.IsRangedWeapon)
+                        {
+                            HarmonyPatchUtil.EquipWeapon(w, c.Pawn, c);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "MakeRoomFor")]
+    static class Patch_Pawn_EquipmentTracker_MakeRoomFor
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Pawn_EquipmentTracker __instance, ThingWithComps eq)
+        {
+            if (eq.def.equipmentType == EquipmentType.Primary && __instance.Primary != null)
+            {
+                AssignedWeaponContainer c;
+                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out c) && 
+                    c.Weapons.Contains(eq))
+                {
+                    __instance.Remove(eq);
+                }
+            }
+        }
+    }
 }

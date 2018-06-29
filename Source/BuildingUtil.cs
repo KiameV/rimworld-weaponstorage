@@ -47,7 +47,7 @@ namespace WeaponStorage
 
         public static bool DropThing(Thing toDrop, Building from, Map map, bool makeForbidden = true)
         {
-            return DropThing(toDrop, from.Position, map, makeForbidden);
+            return DropThing(toDrop, from.InteractionCell, map, makeForbidden);
         }
 
         public static bool DropThing(Thing toDrop, IntVec3 from, Map map, bool makeForbidden = true)
@@ -64,21 +64,10 @@ namespace WeaponStorage
                         dropped = GenPlace.TryPlaceThing(toDrop, from, map, ThingPlaceMode.Near);
                     }
                 }
-                if (toDrop.Position.Equals(from))
-                {
-                    IntVec3 pos = toDrop.Position;
-                    if (random == null)
-                        random = new Random();
-                    int dir = random.Next(2);
-                    int amount = random.Next(2);
-                    if (amount == 0)
-                        amount = -1;
-                    if (dir == 0)
-                        pos.x = pos.x + amount;
-                    else
-                        pos.z = pos.z + amount;
-                    toDrop.Position = pos;
-                }
+
+                toDrop.Position = from;
+
+                dropped = toDrop.Spawned;
             }
             catch (Exception e)
             {

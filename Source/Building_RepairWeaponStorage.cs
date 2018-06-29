@@ -97,9 +97,9 @@ namespace WeaponStorage
             this.AttachedWeaponStorages.Clear();
         }
 
-        public override void DeSpawn()
+        public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
         {
-            base.DeSpawn();
+            base.DeSpawn(mode);
             this.StopRepairing();
             this.AttachedWeaponStorages.Clear();
         }
