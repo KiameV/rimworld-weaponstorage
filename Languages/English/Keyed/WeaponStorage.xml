@@ -3,6 +3,7 @@
 	<WeaponStorage>Weapon Storage</WeaponStorage>
 	
 	<WeaponStorage.ShowWeaponsWhenNotDrafted>Show Weapons When Not Drafted</WeaponStorage.ShowWeaponsWhenNotDrafted>
+	<WeaponStorage.MendingAttachmentMendingSpeed>Mending-Attachment Speed</WeaponStorage.MendingAttachmentMendingSpeed>
 
 	<WeaponStorage.AssignTo>Assign To</WeaponStorage.AssignTo>
 	

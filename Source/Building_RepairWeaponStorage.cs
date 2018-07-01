@@ -42,6 +42,11 @@ namespace WeaponStorage
                     sb.Append(this.container.Pawn.Name.ToStringShort);
                     sb.Append(")");
                 }
+                sb.Append(Environment.NewLine);
+                sb.Append("    ");
+                sb.Append(beingRepaird.HitPoints.ToString());
+                sb.Append("/");
+                sb.Append(beingRepaird.MaxHitPoints);
             }
             else
             {
@@ -121,18 +126,23 @@ namespace WeaponStorage
             }
             else if (
                 this.beingRepaird != null &&
-                this.beingRepaird.HitPoints == this.beingRepaird.MaxHitPoints)
+                this.beingRepaird.HitPoints >= this.beingRepaird.MaxHitPoints)
             {
                 // Power is on
                 // Repairing something
                 // Apparel is fully repaired
+                this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
                 this.StopRepairing();
                 this.StartRepairing();
             }
 
             if (this.beingRepaird != null)
             {
-                this.beingRepaird.HitPoints += 1;
+                this.beingRepaird.HitPoints += Settings.MendingAttachmentMendingSpeed;
+                if (this.beingRepaird.HitPoints > this.beingRepaird.MaxHitPoints)
+                {
+                    this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
+                }
 
                 float generatedHeat = GenTemperature.ControlTemperatureTempChange(
                     base.Position, base.Map, 10, float.MaxValue);

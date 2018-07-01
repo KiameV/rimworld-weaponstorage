@@ -33,16 +33,22 @@ namespace WeaponStorage
 
     public class Settings : ModSettings
     {
+        private const int DEFAULT_MENDING_SPEED = 1;
+
         //private static ToolDefsLookup ToolDefs = new ToolDefsLookup();
 
         public static bool ShowWeaponsWhenNotDrafted = false;
         public static int RepairAttachmentDistance = 6;
+        public static int MendingAttachmentMendingSpeed = DEFAULT_MENDING_SPEED;
+        private static string MendingAttachmentMendingSpeedBuffer = DEFAULT_MENDING_SPEED.ToString();
 
         public override void ExposeData()
         {
             base.ExposeData();
 
             Scribe_Values.Look<bool>(ref ShowWeaponsWhenNotDrafted, "WeaponStorage.ShowWeaponsWhenNotDrafted", false, false);
+            Scribe_Values.Look<int>(ref MendingAttachmentMendingSpeed, "WeaponStorage.MendingAttachmentMendingSpeed", DEFAULT_MENDING_SPEED, false);
+            MendingAttachmentMendingSpeedBuffer = MendingAttachmentMendingSpeed.ToString();
 
             /*if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
@@ -57,7 +63,13 @@ namespace WeaponStorage
             l.ColumnWidth = System.Math.Min(400, rect.width / 2);
             l.Begin(rect);
             l.CheckboxLabeled("WeaponStorage.ShowWeaponsWhenNotDrafted".Translate(), ref ShowWeaponsWhenNotDrafted);
-            //l.Gap(8);
+            l.Gap(4);
+            l.TextFieldNumericLabeled<int>("WeaponStorage.MendingAttachmentMendingSpeed".Translate(), ref MendingAttachmentMendingSpeed, ref MendingAttachmentMendingSpeedBuffer, 1, 100);
+            if (l.ButtonText("ResetButton".Translate()))
+            {
+                MendingAttachmentMendingSpeed = DEFAULT_MENDING_SPEED;
+                MendingAttachmentMendingSpeedBuffer = DEFAULT_MENDING_SPEED.ToString();
+            }
             l.End();
         }
         

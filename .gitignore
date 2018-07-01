@@ -1,5 +1,4 @@
-/obj/
-Source/obj/
-/Assemblies/
-/Source/.vs/
+obj/
+Assemblies/
+.vs/
 Thumbs.db
