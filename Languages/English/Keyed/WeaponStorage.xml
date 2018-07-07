@@ -2,8 +2,11 @@
 <LanguageData>
 	<WeaponStorage>Weapon Storage</WeaponStorage>
 	
+	<!-- Settings -->
 	<WeaponStorage.ShowWeaponsWhenNotDrafted>Show Weapons When Not Drafted</WeaponStorage.ShowWeaponsWhenNotDrafted>
-	<WeaponStorage.MendingAttachmentMendingSpeed>Mending-Attachment Speed</WeaponStorage.MendingAttachmentMendingSpeed>
+	<WeaponStorage.RepairAttachmentSettings>Repair-Attachment Settings</WeaponStorage.RepairAttachmentSettings>
+	<WeaponStorage.SecondsBetweenTicks>Seconds Between Ticks</WeaponStorage.SecondsBetweenTicks>
+	<WeaponStorage.HPPerTick>HP Per Tick</WeaponStorage.HPPerTick>
 
 	<WeaponStorage.AssignTo>Assign To</WeaponStorage.AssignTo>
 	

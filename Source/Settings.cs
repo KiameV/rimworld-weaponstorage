@@ -33,43 +33,50 @@ namespace WeaponStorage
 
     public class Settings : ModSettings
     {
-        private const int DEFAULT_MENDING_SPEED = 1;
+        private const int DEFAULT_REPAIR_SPEED = 1;
+        private const float DEFAULT_REPAIR_UPDATE_INTERVAL = 5f;
 
         //private static ToolDefsLookup ToolDefs = new ToolDefsLookup();
 
         public static bool ShowWeaponsWhenNotDrafted = false;
         public static int RepairAttachmentDistance = 6;
-        public static int MendingAttachmentMendingSpeed = DEFAULT_MENDING_SPEED;
-        private static string MendingAttachmentMendingSpeedBuffer = DEFAULT_MENDING_SPEED.ToString();
+        public static int RepairAttachmentMendingSpeed = DEFAULT_REPAIR_SPEED;
+        private static string RepairAttachmentMendingSpeedBuffer = DEFAULT_REPAIR_SPEED.ToString();
+        public static float RepairAttachmentUpdateInterval = DEFAULT_REPAIR_UPDATE_INTERVAL;
+        private static string repairAttachmentUpdateIntervalBuffer = DEFAULT_REPAIR_UPDATE_INTERVAL.ToString();
+
+
+        public static long RepairAttachmentUpdateIntervalTicks { get { return (long)(RepairAttachmentUpdateInterval * TimeSpan.TicksPerSecond); } }
 
         public override void ExposeData()
         {
             base.ExposeData();
 
             Scribe_Values.Look<bool>(ref ShowWeaponsWhenNotDrafted, "WeaponStorage.ShowWeaponsWhenNotDrafted", false, false);
-            Scribe_Values.Look<int>(ref MendingAttachmentMendingSpeed, "WeaponStorage.MendingAttachmentMendingSpeed", DEFAULT_MENDING_SPEED, false);
-            MendingAttachmentMendingSpeedBuffer = MendingAttachmentMendingSpeed.ToString();
-
-            /*if (Scribe.mode == LoadSaveMode.PostLoadInit)
-            {
-                Log.Warning("Root Dir: " + Mod.Content.RootDir);
-                ToolDefs.Load(Mod.Content.RootDir + "\\About\\tooldefs.xml");
-            }*/
+            Scribe_Values.Look<int>(ref RepairAttachmentMendingSpeed, "WeaponStorage.RepairAttachmentHpPerTick", DEFAULT_REPAIR_SPEED, false);
+            RepairAttachmentMendingSpeedBuffer = RepairAttachmentMendingSpeed.ToString();
+            Scribe_Values.Look<float>(ref RepairAttachmentUpdateInterval, "WeaponStorage.RepairAttachmentUpdateInterval", DEFAULT_REPAIR_UPDATE_INTERVAL, false);
+            repairAttachmentUpdateIntervalBuffer = string.Format("{0:0.0###}", RepairAttachmentUpdateInterval);
         }
 
         public static void DoSettingsWindowContents(Rect rect)
         {
             Listing_Standard l = new Listing_Standard(GameFont.Small);
-            l.ColumnWidth = System.Math.Min(400, rect.width / 2);
+            l.ColumnWidth = Math.Min(400, rect.width / 2);
             l.Begin(rect);
             l.CheckboxLabeled("WeaponStorage.ShowWeaponsWhenNotDrafted".Translate(), ref ShowWeaponsWhenNotDrafted);
+            l.Gap(10);
+
+            l.Label("WeaponStorage.RepairAttachmentSettings".Translate());
             l.Gap(4);
-            l.TextFieldNumericLabeled<int>("WeaponStorage.MendingAttachmentMendingSpeed".Translate(), ref MendingAttachmentMendingSpeed, ref MendingAttachmentMendingSpeedBuffer, 1, 100);
-            if (l.ButtonText("ResetButton".Translate()))
-            {
-                MendingAttachmentMendingSpeed = DEFAULT_MENDING_SPEED;
-                MendingAttachmentMendingSpeedBuffer = DEFAULT_MENDING_SPEED.ToString();
-            }
+            NumberInput(l, "WeaponStorage.SecondsBetweenTicks",
+                ref RepairAttachmentUpdateInterval, ref repairAttachmentUpdateIntervalBuffer,
+                DEFAULT_REPAIR_UPDATE_INTERVAL, 0.25f, 120f);
+            l.Gap(4);
+
+            NumberInput(l, "WeaponStorage.HPPerTick",
+                ref RepairAttachmentMendingSpeed, ref RepairAttachmentMendingSpeedBuffer,
+                DEFAULT_REPAIR_SPEED, 1, 60);
             l.End();
         }
         
@@ -92,138 +99,40 @@ namespace WeaponStorage
             return false;
         }
 
-        /*internal class ToolDefsLookup
+        private static void NumberInput(Listing_Standard l, string label, ref float val, ref string buffer, float defaultVal, float min, float max)
         {
-            private List<string> startsWith = null;
-            private List<string> contains = null;
-            private List<string> equals = null;
-
-            public ToolDefsLookup() { }
-
-            public void Load(string xmlFile)
+            try
             {
-                if (this.startsWith != null)
+                l.TextFieldNumericLabeled<float>(label.Translate(), ref val, ref buffer, min, max);
+                if (l.ButtonText("ResetButton".Translate()))
                 {
-                    this.startsWith.Clear();
-                    this.startsWith = null;
-                }
-                if (this.contains != null)
-                {
-                    this.contains.Clear();
-                    this.contains = null;
-                }
-                if (this.equals != null)
-                {
-                    this.equals.Clear();
-                    this.equals = null;
-                }
-
-                if (!File.Exists(xmlFile))
-                {
-                    Log.Error("Unable to find file [" + xmlFile + "]");
-                    return;
-                }
-
-                try
-                {
-                    using (FileStream fs = File.OpenRead(xmlFile))
-                    {
-                        XDocument xml = null;
-                        using (StreamReader sr = new StreamReader(fs))
-                        {
-                            xml = XDocument.Parse(sr.ReadToEnd());
-                            XElement root = xml.Element("tool_defs");
-                            if (root == null)
-                            {
-                                throw new Exception("Invalid markup, missing root element \"tool_defs\"");
-                            }
-
-                            XElement el = root.Element("starts_with");
-                            if (el!= null)
-                                this.startsWith = this.ParseValue(el.Value);
-
-                            el = root.Element("contains");
-                            if (el != null)
-                                this.contains = this.ParseValue(el.Value);
-
-                            el = root.Element("equals");
-                            if (el != null)
-                                this.equals = this.ParseValue(el.Value);
-                        }
-                    }
-                }
-                catch(Exception e)
-                {
-                    Log.Error("Failed to read \"tooldefs.xml\"\n" + e.StackTrace);
+                    val = defaultVal;
+                    buffer = string.Format("{0:0.0###}", defaultVal);
                 }
             }
-
-            public bool IsTool(ThingDef def)
+            catch
             {
-                if (def != null)
-                {
-                    string defName = def.defName;
-                    if (this.equals != null)
-                    {
-                        foreach(string s in this.equals)
-                        {
-                            if (defName.Equals(s))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if (this.startsWith != null)
-                    {
-                        foreach(string s in this.startsWith)
-                        {
-                            if (defName.StartsWith(s))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-
-                    if (this.contains != null)
-                    {
-                        foreach(string s in this.contains)
-                        {
-                            if (defName.Contains(s))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
+                val = min;
+                buffer = string.Format("{0:0.0###}", min);
             }
+        }
 
-            private List<string> ParseValue(string v)
+        private static void NumberInput(Listing_Standard l, string label, ref int val, ref string buffer, int defaultVal, int min, int max)
+        {
+            try
             {
-                if (v != null)
+                l.TextFieldNumericLabeled<int>(label.Translate(), ref val, ref buffer, min, max);
+                if (l.ButtonText("ResetButton".Translate()))
                 {
-                    string[] values = v.Split(',');
-                    if (values != null && values.Length > 0)
-                    {
-                        List<string> rv = null;
-                        foreach (string val in values)
-                        {
-                            string s = val.Trim();
-                            if (s.Length > 0)
-                            {
-                                if (rv == null)
-                                {
-                                    rv = new List<string>();
-                                }
-                                rv.Add(s);
-                            }
-                        }
-                        return rv;
-                    }
+                    val = defaultVal;
+                    buffer = defaultVal.ToString();
                 }
-                return null;
             }
-        }*/
+            catch
+            {
+                val = min;
+                buffer = min.ToString();
+            }
+        }
     }
 }

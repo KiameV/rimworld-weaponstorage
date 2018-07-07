@@ -109,50 +109,68 @@ namespace WeaponStorage
             this.AttachedWeaponStorages.Clear();
         }
 
-        public override void TickLong()
+        // Normal Tick: 1 / 60 seconds
+        // Rare Tick: 4 seconds (.6 on fast)
+        // Long Tick: 30 seconds (2.2 on fast)
+
+        private const long THIRTY_SECONDS = 30 * TimeSpan.TicksPerSecond;
+        long lastTick = DateTime.Now.Ticks;
+        long lastSearch = DateTime.Now.Ticks;
+        public override void Tick()
         {
-            if (!this.compPowerTrader.PowerOn)
+            base.TickRare();
+            long now = DateTime.Now.Ticks;
+            if (now - lastTick > Settings.RepairAttachmentUpdateIntervalTicks)
             {
-                // Power is off
-                if (beingRepaird != null)
+                //Log.Warning("Tick: [" + (int)((now - lastTick) / TimeSpan.TicksPerMillisecond) + "] milliseconds");
+                lastTick = DateTime.Now.Ticks;
+                if (!this.compPowerTrader.PowerOn)
                 {
-                    this.StopRepairing();
+                    // Power is off
+                    if (beingRepaird != null)
+                    {
+                        this.StopRepairing();
+                    }
                 }
-            }
-            else if (this.beingRepaird == null)
-            {
-                // Power is on and not repairing anything
-                this.StartRepairing();
-            }
-            else if (
-                this.beingRepaird != null &&
-                this.beingRepaird.HitPoints >= this.beingRepaird.MaxHitPoints)
-            {
-                // Power is on
-                // Repairing something
-                // Apparel is fully repaired
-                this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
-                this.StopRepairing();
-                this.StartRepairing();
-            }
-
-            if (this.beingRepaird != null)
-            {
-                this.beingRepaird.HitPoints += Settings.MendingAttachmentMendingSpeed;
-                if (this.beingRepaird.HitPoints > this.beingRepaird.MaxHitPoints)
+                else if (this.beingRepaird == null)
                 {
+                    // Power is on and not repairing anything
+                    if (now - lastSearch > THIRTY_SECONDS)
+                    {
+                        lastSearch = now;
+                        this.StartRepairing();
+                    }
+                }
+                else if (
+                    this.beingRepaird != null &&
+                    this.beingRepaird.HitPoints >= this.beingRepaird.MaxHitPoints)
+                {
+                    // Power is on
+                    // Repairing something
+                    // Apparel is fully repaired
                     this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
+                    this.StopRepairing();
+                    this.StartRepairing();
                 }
 
-                float generatedHeat = GenTemperature.ControlTemperatureTempChange(
-                    base.Position, base.Map, 10, float.MaxValue);
-                this.GetRoomGroup().Temperature += generatedHeat;
+                if (this.beingRepaird != null)
+                {
+                    this.beingRepaird.HitPoints += Settings.RepairAttachmentMendingSpeed;
+                    if (this.beingRepaird.HitPoints > this.beingRepaird.MaxHitPoints)
+                    {
+                        this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
+                    }
 
-                this.compPowerTrader.PowerOutput = -this.compPowerTrader.Props.basePowerConsumption;
-            }
-            else
-            {
-                this.compPowerTrader.PowerOutput = LOW_POWER_COST;
+                    float generatedHeat = GenTemperature.ControlTemperatureTempChange(
+                        base.Position, base.Map, 10, float.MaxValue);
+                    this.GetRoomGroup().Temperature += generatedHeat;
+
+                    this.compPowerTrader.PowerOutput = -this.compPowerTrader.Props.basePowerConsumption;
+                }
+                else
+                {
+                    this.compPowerTrader.PowerOutput = LOW_POWER_COST;
+                }
             }
         }
 

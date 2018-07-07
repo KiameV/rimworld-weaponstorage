@@ -84,7 +84,7 @@
 		<tickerType>Long</tickerType>
 	</ThingDef>
 
-	<ThingDef ParentName="ArtableFurnitureBase">
+	<ThingDef ParentName="FurnitureBase">
 		<defName>RepairWeaponStorage</defName>
 		<label>repair attachment</label>
 		<description>An attachment to weapon storages which can repair the stored weapons.</description>
@@ -150,7 +150,7 @@
 		</building>
 		<hasInteractionCell>false</hasInteractionCell>
 		<designationCategory>Misc</designationCategory>
-		<tickerType>Long</tickerType>
+		<tickerType>Normal</tickerType>
 		<researchPrerequisites>
 			<li>Mending</li>
 			<li>MultiAnalyzer</li>
