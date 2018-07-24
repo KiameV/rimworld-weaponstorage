@@ -150,6 +150,7 @@ namespace WeaponStorage
                     // Apparel is fully repaired
                     this.beingRepaird.HitPoints = this.beingRepaird.MaxHitPoints;
                     this.StopRepairing();
+                    lastSearch = now;
                     this.StartRepairing();
                 }
 

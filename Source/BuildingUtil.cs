@@ -31,7 +31,7 @@ namespace WeaponStorage
             return list;
         }
 
-        private static Random random = null;
+        //private static Random random = null;
         public static bool DropThing(Thing toDrop, Building_WeaponStorage from, Map map, bool makeForbidden = true)
         {
             try

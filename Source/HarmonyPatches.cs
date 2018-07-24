@@ -451,7 +451,7 @@ namespace WeaponStorage
         {
             foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons.Values)
             {
-                if (c.Weapons.Remove(__instance.ownerEquipment))
+                if (c.Weapons.Remove(__instance.EquipmentSource))
                 {
                     foreach (ThingWithComps w in c.Weapons)
                     {
