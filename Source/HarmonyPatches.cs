@@ -167,11 +167,11 @@ namespace WeaponStorage
                 {
 #if DOWNED
                     Log.Message("    Assigned Weapons Count: " + c.Weapons.Count);
-#endif
                     foreach (ThingWithComps w in c.Weapons)
                     {
                         Log.Message("        " + w.Label);
                     }
+#endif
                     pawn.equipment.Remove(pawn.equipment.Primary);
                 }
             }
