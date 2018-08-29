@@ -14,7 +14,7 @@ namespace MendingWeaponStoragePatch
     {
         static HarmonyPatches()
         {
-            if (ModsConfig.ActiveModsInLoadOrder.Any(m => "Mending".Equals(m.Name)))
+            if (ModsConfig.ActiveModsInLoadOrder.Any(m => "MendAndRecycle".Equals(m.Name)))
             {
                 var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
                 harmony.PatchAll(Assembly.GetExecutingAssembly());
@@ -24,11 +24,15 @@ namespace MendingWeaponStoragePatch
                     "  Postfix:" + Environment.NewLine +
                     "    WorkGiver_DoBill.TryFindBestBillIngredients - Priority Last");
             }
+            else
+            {
+                Log.Message("MendingWeaponStoragePatch did not find MendAndRecycle. Will not load patch.");
+            }
         }
     }
 
     [HarmonyPriority(Priority.Last)]
-    [HarmonyPatch(typeof(Mending.WorkGiver_DoBill), "TryFindBestBillIngredients")]
+    [HarmonyPatch(typeof(MendAndRecycle.WorkGiver_DoBill), "TryFindBestBillIngredients")]
     static class Patch_WorkGiver_DoBill_TryFindBestBillIngredients
     {
         static void Postfix(ref bool __result, Bill bill, Pawn pawn, Thing billGiver, bool ignoreHitPoints, ref Thing chosen)
@@ -51,7 +55,8 @@ namespace MendingWeaponStoragePatch
                     {
                         foreach (ThingWithComps t in ws.StoredWeapons)
                         {
-                            if (bill.ingredientFilter.Allows(t))
+                            if (bill.ingredientFilter.Allows(t) && 
+                                t.HitPoints != t.MaxHitPoints)
                             {
                                 ws.Remove(t, false);
                                 if (t.Spawned == false)
