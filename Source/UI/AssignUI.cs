@@ -147,8 +147,8 @@ namespace WeaponStorage.UI
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
                 int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.Count : 0);
-                Rect r = new Rect(0, 20, 384, (count + 1) * (HEIGHT + BUFFER));
-                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, 400, 400), scrollPosition, r);
+                Rect r = new Rect(0, 20, 450, (count + 1) * (HEIGHT + BUFFER));
+                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, r.width + 16, 400), scrollPosition, r);
 
                 if (this.PossibleWeapons != null)
                 {
@@ -201,7 +201,12 @@ namespace WeaponStorage.UI
 
                         Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), weapon);
 
-                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), weapon.Label);
+                        if (Widgets.InfoCardButton(66, 0, weapon))
+                        {
+                            Find.WindowStack.Add(new Dialog_InfoCard(weapon));
+                        }
+
+                        Widgets.Label(new Rect(38 + HEIGHT + 5 + 24, 0, 250, HEIGHT), weapon.Label);
 
                         if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
                         {
