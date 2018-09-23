@@ -40,6 +40,8 @@ namespace WeaponStorage.UI
 
         private Vector2 scrollPosition = new Vector2(0, 0);
 
+        private string textBuffer = "";
+
         public AssignUI(Building_WeaponStorage weaponStorage)
         {
             this.weaponStorage = weaponStorage;
@@ -118,9 +120,9 @@ namespace WeaponStorage.UI
             Text.Font = GameFont.Small;
             try
             {
-                Widgets.Label(new Rect(0, 0, 150, 30), "WeaponStorage.AssignTo".Translate());
+                Widgets.Label(new Rect(0, 0, 100, 30), "WeaponStorage.AssignTo".Translate());
                 string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "Pawn";
-                if (Widgets.ButtonText(new Rect(175, 0, 150, 30), label))
+                if (Widgets.ButtonText(new Rect(120, 0, 150, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     foreach (Pawn p in this.selectablePawns)
@@ -144,18 +146,25 @@ namespace WeaponStorage.UI
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
 
+                this.textBuffer = Widgets.TextField(new Rect(300, 0, 100, 30), this.textBuffer);
+
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
                 int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.Count : 0);
                 Rect r = new Rect(0, 20, 450, (count + 1) * (HEIGHT + BUFFER));
                 scrollPosition = GUI.BeginScrollView(new Rect(40, 50, r.width + 16, 400), scrollPosition, r);
-
+                int row = 0;
                 if (this.PossibleWeapons != null)
                 {
+                    ThingWithComps weapon;
                     for (int i = 0; i < this.PossibleWeapons.Count; ++i)
                     {
-                        GUI.BeginGroup(new Rect(0, 55 + i * (HEIGHT + BUFFER), r.width, HEIGHT));
-                        ThingWithComps weapon = this.PossibleWeapons[i];
+                        weapon = this.PossibleWeapons[i];
+                        if (!IncludeWeapon(weapon))
+                            continue;
+
+                        GUI.BeginGroup(new Rect(0, 55 + row * (HEIGHT + BUFFER), r.width, HEIGHT));
+                        ++row;
 
                         if (this.assignedWeapons != null)
                         {
@@ -248,11 +257,19 @@ namespace WeaponStorage.UI
                             Log.Warning("-" + t.Label);
                         }
 #endif
+                        if (!IncludeWeapon(t))
+                            continue;
+
                         GUI.BeginGroup(new Rect(0, 55 + rowIndex * (HEIGHT + BUFFER), r.width, HEIGHT));
 
                         Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), t);
 
-                        Widgets.Label(new Rect(38 + HEIGHT + 5, 0, 250, HEIGHT), t.Label);
+                        if (Widgets.InfoCardButton(66, 0, t))
+                        {
+                            Find.WindowStack.Add(new Dialog_InfoCard(t));
+                        }
+
+                        Widgets.Label(new Rect(38 + HEIGHT + 5 + 24, 0, 250, HEIGHT), t.Label);
 
                         if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
                         {
@@ -278,6 +295,22 @@ namespace WeaponStorage.UI
                 Text.Anchor = TextAnchor.UpperLeft;
                 GUI.color = Color.white;
             }
+        }
+
+        private bool IncludeWeapon(ThingWithComps weapon)
+        {
+            if (this.textBuffer.Length > 0)
+            {
+                string search = this.textBuffer.ToLower();
+                if ((search.StartsWith("mel") || search.StartsWith("mee")) && weapon.def.IsMeleeWeapon)
+                    return true;
+                else if (search.StartsWith("ran") && weapon.def.IsRangedWeapon)
+                    return true;
+                else if (weapon.Label.ToLower().Contains(search))
+                    return true;
+                return false;
+            }
+            return true;
         }
     }
 }
