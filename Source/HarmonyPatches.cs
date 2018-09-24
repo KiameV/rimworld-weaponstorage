@@ -413,7 +413,7 @@ namespace WeaponStorage
                     {
                         foreach (Building_WeaponStorage ws in WorldComp.GetWeaponStorages(bill.Map))
                         {
-                            __result += ws.GetWeaponCount(def, bill.ingredientFilter);
+                            __result += ws.GetWeaponCount(def, bill.qualityRange, bill.hpRange, (bill.limitToAllowedStuff) ? bill.ingredientFilter : null);
                         }
                     }
                 }

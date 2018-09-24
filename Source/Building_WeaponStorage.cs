@@ -262,12 +262,12 @@ namespace WeaponStorage
             this.storedWeapons.AddLast(weapon);
         }
 
-        internal int GetWeaponCount(ThingDef expectedDef, ThingFilter ingredientFilter)
+        internal int GetWeaponCount(ThingDef expectedDef, QualityRange qualityRange, FloatRange hpRange, ThingFilter ingredientFilter)
         {
             int count = 0;
             foreach (ThingWithComps t in this.storedWeapons)
             {
-                if (this.Allows(t, expectedDef, ingredientFilter))
+                if (this.Allows(t, expectedDef, qualityRange, hpRange, ingredientFilter))
                 {
                     ++count;
                 }
@@ -275,13 +275,8 @@ namespace WeaponStorage
             return count;
         }
 
-        private bool Allows (Thing t, ThingDef expectedDef, ThingFilter filter)
+        private bool Allows (Thing t, ThingDef expectedDef, QualityRange qualityRange, FloatRange hpRange, ThingFilter filter)
         {
-            if (filter == null)
-            {
-                return true;
-            }
-
 #if DEBUG || DEBUG_DO_UNTIL_X
             Log.Warning("Building_WeaponStoreage.Allows Begin [" + t.Label + "]");
 #endif
@@ -292,33 +287,42 @@ namespace WeaponStorage
 #endif
                 return false;
             }
-            if (expectedDef.useHitPoints && 
-                filter.AllowedHitPointsPercents.min != 0f && filter.AllowedHitPointsPercents.max != 100f)
+            if (expectedDef.useHitPoints &&
+                hpRange != null &&
+                hpRange.min != 0f && hpRange.max != 100f)
             {
                 float num = (float)t.HitPoints / (float)t.MaxHitPoints;
                 num = GenMath.RoundedHundredth(num);
-                if (!filter.AllowedHitPointsPercents.IncludesEpsilon(Mathf.Clamp01(num)))
+                if (!hpRange.IncludesEpsilon(Mathf.Clamp01(num)))
                 {
 #if DEBUG || DEBUG_DO_UNTIL_X
-                    Log.Warning("    Building_WeaponStoreage.Allows End Hit Points [False]");
+                    Log.Warning("    Building_WeaponStoreage.Allows End Hit Points [False - HP]");
 #endif
                     return false;
                 }
             }
-            if (filter.AllowedQualityLevels != QualityRange.All && t.def.FollowQualityThingFilter())
+            if (qualityRange != null && qualityRange != QualityRange.All && t.def.FollowQualityThingFilter())
             {
                 QualityCategory p;
                 if (!t.TryGetQuality(out p))
                 {
                     p = QualityCategory.Normal;
                 }
-                if (!filter.AllowedQualityLevels.Includes(p))
+                if (!qualityRange.Includes(p))
                 {
 #if DEBUG || DEBUG_DO_UNTIL_X
-                    Log.Warning("    Building_WeaponStoreage.Allows End Quality [False]");
+                    Log.Warning("    Building_WeaponStoreage.Allows End Quality [False - Quality]");
 #endif
                     return false;
                 }
+            }
+
+            if (filter != null && !filter.Allows(t.Stuff))
+            {
+#if DEBUG || DEBUG_DO_UNTIL_X
+                    Log.Warning("StoredApparel.Allows End Quality [False - filters.Allows]");
+#endif
+                return false;
             }
 #if DEBUG || DEBUG_DO_UNTIL_X
             Log.Warning("    Building_WeaponStoreage.Allows End [True]");
@@ -509,7 +513,6 @@ namespace WeaponStorage
                 }
             }
         }
-
         #region Gizmos
         public override IEnumerable<Gizmo> GetGizmos()
         {
