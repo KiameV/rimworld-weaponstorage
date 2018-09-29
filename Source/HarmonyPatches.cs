@@ -27,7 +27,7 @@ namespace WeaponStorage
                 "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int, int)" + Environment.NewLine +
                 "    MakeUndowned - Priority First" + Environment.NewLine +
                 "    Pawn.Kill - Priority First" + Environment.NewLine +
-                "    Verb_ShootOneUse.Notify_EquipmentLost - Priority First" + Environment.NewLine +
+                "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.MakeRoomFor - Priority First" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
                 "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
@@ -70,6 +70,32 @@ namespace WeaponStorage
                 }
             }
             pawn.equipment.AddEquipment(weapon);
+        }
+
+        internal static bool EquipRanged(AssignedWeaponContainer c)
+        {
+            foreach (ThingWithComps w in c.Weapons)
+            {
+                if (w.def.IsRangedWeapon)
+                {
+                    EquipWeapon(w, c.Pawn, c);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal static bool EquipMelee(AssignedWeaponContainer c)
+        {
+            foreach (ThingWithComps w in c.Weapons)
+            {
+                if (w.def.IsMeleeWeapon)
+                {
+                    EquipWeapon(w, c.Pawn, c);
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -457,27 +483,46 @@ namespace WeaponStorage
     }
 #endregion
 
-    [HarmonyPatch(typeof(Verb_ShootOneUse), "Notify_EquipmentLost")]
-    static class Patch_Verb_ShootOneUse_Notify_EquipmentLost
+    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
+    static class Patch_Pawn_EquipmentTracker_TryDropEquipment
     {
         [HarmonyPriority(Priority.First)]
-        static void Prefix(Verb_ShootOneUse __instance)
+        static void Prefix(ref Pawn __state, ThingWithComps eq)
         {
-            foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons.Values)
+            if (eq.def.IsWeapon && eq.holdingOwner != null && eq.holdingOwner.Owner != null)
             {
-                if (c.Weapons.Remove(__instance.EquipmentSource))
+                if (eq.holdingOwner.Owner is Pawn_EquipmentTracker)
                 {
-                    foreach (ThingWithComps w in c.Weapons)
+                    __state = (eq.holdingOwner.Owner as Pawn_EquipmentTracker).pawn;
+                }
+            }
+        }
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(ref bool __result, ref Pawn __state, ThingWithComps eq)
+        {
+            if (eq.def.IsWeapon && __state != null)
+            {
+                AssignedWeaponContainer c;
+                if (WorldComp.AssignedWeapons.TryGetValue(__state, out c))
+                {
+                    if (c.Weapons.Remove(eq))
                     {
-                        if (w.def.IsRangedWeapon)
+                        if (eq.def.IsRangedWeapon)
                         {
-                            HarmonyPatchUtil.EquipWeapon(w, c.Pawn, c);
+                            if (!HarmonyPatchUtil.EquipRanged(c))
+                                HarmonyPatchUtil.EquipMelee(c);
+                        }
+                        else
+                        {
+                            if (!HarmonyPatchUtil.EquipMelee(c))
+                                HarmonyPatchUtil.EquipRanged(c);
                         }
                     }
                 }
             }
         }
     }
+
     [HarmonyPatch(typeof(Pawn_EquipmentTracker), "MakeRoomFor")]
     static class Patch_Pawn_EquipmentTracker_MakeRoomFor
     {
