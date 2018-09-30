@@ -24,16 +24,23 @@ namespace WeaponStorage
                     {
                         d = def;
                     }
-                    else if (def.IsWeapon && !def.defName.Equals("WoodLog"))
+                    else if (def.IsWeapon)
                     {
                         weapons.Add(def);
                     }
                 }
-                
+
+                bool allows;
                 foreach (ThingDef w in weapons)
                 {
                     d.building.fixedStorageSettings.filter.SetAllow(w, true);
-                    d.building.defaultStorageSettings.filter.SetAllow(w, true);
+                    allows = true;
+                    if (w.defName.Equals("Beer") || 
+                        w.defName.Equals("WoodLog"))
+                    {
+                        allows = false;
+                    }
+                    d.building.defaultStorageSettings.filter.SetAllow(w, allows);
                 }
                 d.building.fixedStorageSettings.filter.RecalculateDisplayRootCategory();
                 d.building.defaultStorageSettings.filter.RecalculateDisplayRootCategory();
