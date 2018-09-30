@@ -27,6 +27,7 @@ namespace WeaponStorage
                 "    CaravanExitMapUtility.ExitMapAndCreateCaravan(IEnumerable<Pawn>, Faction, int, int)" + Environment.NewLine +
                 "    MakeUndowned - Priority First" + Environment.NewLine +
                 "    Pawn.Kill - Priority First" + Environment.NewLine +
+                "    Pawn_EquipmentTracker.AddEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.MakeRoomFor - Priority First" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
@@ -38,6 +39,7 @@ namespace WeaponStorage
                 "    Pawn_DraftController.Drafted { set; }" + Environment.NewLine +
                 "    WealthWatcher.ForceRecount" + Environment.NewLine +
                 "    MakeDowned - Priority First" + Environment.NewLine +
+                "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
                 "    Pawn.Kill - Priority First");
         }
     }
@@ -116,69 +118,6 @@ namespace WeaponStorage
             }
         }
     }
-
-    /*[HarmonyPatch(typeof(Pawn_EquipmentTracker), "AddEquipment")]
-    static class Patch_Pawn_AddEquipment
-    {
-        [HarmonyPriority(Priority.First)]
-        static void Postfix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
-        {
-            Pawn pawn = (Pawn)__instance.GetType().GetField(
-                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
-#if TRY_ADD_EQUIPMENT
-            Log.Warning("Begin Pawn_EquipmentTracker.AddEquipment " + pawn.Name.ToStringShort);
-#endif
-            AssignedWeaponContainer c;
-            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
-            {
-                c.Add(newEq);
-                c.SetLastThingUsed(pawn, newEq);
-#if TRY_ADD_EQUIPMENT
-                Log.Message("    Assigned Weapons After Add:");
-                foreach (ThingWithComps w in c.Weapons)
-                {
-                    Log.Warning("        " + w.Label);
-                }
-#endif
-            }
-#if TRY_ADD_EQUIPMENT
-            Log.Warning("End Pawn_EquipmentTracker.AddEquipment");
-#endif
-        }
-    }
-
-    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
-    static class Patch_Pawn_TryDropEquipment
-    {
-        [HarmonyPriority(Priority.First)]
-        static void Postfix(ref bool __result, Pawn_EquipmentTracker __instance, ref ThingWithComps resultingEq)
-        {
-            Pawn pawn = (Pawn)__instance.GetType().GetField(
-                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
-#if TRY_DROP_EQUIPMENT
-            Log.Warning("Begin Pawn_EquipmentTracker.TryDropEquipment " + pawn.Name.ToStringShort);
-#endif
-            if (__result && resultingEq != null)
-            {
-                AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
-                {
-                    c.Remove(resultingEq);
-
-#if TRY_DROP_EQUIPMENT
-                    Log.Message("    Assigned Weapons After Drop:");
-                    foreach (ThingWithComps w in c.Weapons)
-                    {
-                        Log.Warning("        " + w.Label);
-                    }
-#endif
-                    }
-                }
-#if TRY_DROP_EQUIPMENT
-            Log.Warning("End Pawn_EquipmentTracker.TryDropEquipment");
-#endif
-        }
-    }*/
 
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
     static class Patch_Pawn_HealthTracker_MakeDowned
@@ -481,7 +420,54 @@ namespace WeaponStorage
             }
         }
     }
-#endregion
+    #endregion
+
+    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "AddEquipment")]
+    static class Patch_Pawn_AddEquipment
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
+        {
+#if TRY_ADD_EQUIPMENT
+            Log.Warning("Begin Pawn_EquipmentTracker.AddEquipment " + pawn.Name.ToStringShort);
+#endif
+            if (__instance.Primary != null)
+            {
+                __instance.Remove(__instance.Primary);
+            }
+            
+
+            /*ThingWithComps primary = __instance.Primary;
+            if (primary != null)
+            {
+                if (primary.def.IsWeapon)
+                {
+                    AssignedWeaponContainer c;
+                    if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c))
+                    {
+                        c.Add(primary);
+
+                        ThingOwner<ThingWithComps> equipment = typeof(Pawn_EquipmentTracker).GetField("equipment", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance) as ThingOwner<ThingWithComps>;
+                        if (equipment != null)
+                        {
+                            List<ThingWithComps> l = typeof(ThingOwner<ThingWithComps>).GetField("innerList", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(equipment) as List<ThingWithComps>;
+                            if (l != null)
+                            {
+                                Log.Error("Removed: " + l.Remove(primary));
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    __instance.TryDropEquipment(primary, out ThingWithComps dropped, pawn.Position);
+                }
+            }*/
+#if TRY_ADD_EQUIPMENT
+            Log.Warning("End Pawn_EquipmentTracker.AddEquipment");
+#endif
+        }
+    }
 
     [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
     static class Patch_Pawn_EquipmentTracker_TryDropEquipment
