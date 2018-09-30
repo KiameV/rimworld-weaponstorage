@@ -40,7 +40,8 @@ namespace WeaponStorage
                 "    WealthWatcher.ForceRecount" + Environment.NewLine +
                 "    MakeDowned - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
-                "    Pawn.Kill - Priority First");
+                "    Pawn.Kill - Priority First" + Environment.NewLine +
+                "    Root.Start - Priority Last");
         }
     }
 

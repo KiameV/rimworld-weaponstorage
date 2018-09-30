@@ -10,8 +10,36 @@ namespace WeaponStorage
 
         public static LinkedList<Building_WeaponStorage> WeaponStoragesToUse { get; private set; }
 
+        private static bool defInitialized = false;
+
         public WorldComp(World world) : base(world)
         {
+            if (!defInitialized)
+            {
+                ThingDef d = null;
+                List<ThingDef> weapons = new List<ThingDef>();
+                foreach (ThingDef def in DefDatabase<ThingDef>.AllDefs)
+                {
+                    if (def.defName.Equals("WeaponStorage"))
+                    {
+                        d = def;
+                    }
+                    else if (def.IsWeapon && !def.defName.Equals("WoodLog"))
+                    {
+                        weapons.Add(def);
+                    }
+                }
+                
+                foreach (ThingDef w in weapons)
+                {
+                    d.building.fixedStorageSettings.filter.SetAllow(w, true);
+                    d.building.defaultStorageSettings.filter.SetAllow(w, true);
+                }
+                d.building.fixedStorageSettings.filter.RecalculateDisplayRootCategory();
+                d.building.defaultStorageSettings.filter.RecalculateDisplayRootCategory();
+                defInitialized = true;
+            }
+
             foreach (AssignedWeaponContainer c in AssignedWeapons.Values)
             {
                 c.Weapons.Clear();
