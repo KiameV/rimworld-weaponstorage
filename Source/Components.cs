@@ -111,7 +111,8 @@ namespace WeaponStorage
         {
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
-                if (ws.Spawned && ws.Map == map)
+                if (map == null || 
+                    (ws.Spawned && ws.Map == map))
                 {
                     yield return ws;
                 }

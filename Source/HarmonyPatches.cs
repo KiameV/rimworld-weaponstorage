@@ -30,6 +30,7 @@ namespace WeaponStorage
                 "    Pawn_EquipmentTracker.AddEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.MakeRoomFor - Priority First" + Environment.NewLine +
+                "    ScribeSaver.InitSaving" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
                 "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
                 "    TradeShip.ColonyThingsWillingToBuy" + Environment.NewLine +
@@ -524,6 +525,18 @@ namespace WeaponStorage
                 {
                     __instance.Remove(eq);
                 }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ScribeSaver), "InitSaving")]
+    static class Patch_ScribeSaver_InitSaving
+    {
+        static void Prefix()
+        {
+            foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
+            {
+                s.ReclaimWeapons();
             }
         }
     }
