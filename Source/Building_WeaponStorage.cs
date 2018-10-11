@@ -358,8 +358,8 @@ namespace WeaponStorage
                 }
                 l.Clear();
             }
-
         }
+
         public void HandleThingsOnTop()
         {
             if (this.Spawned)

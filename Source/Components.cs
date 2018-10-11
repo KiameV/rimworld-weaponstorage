@@ -109,12 +109,15 @@ namespace WeaponStorage
 
         public static IEnumerable<Building_WeaponStorage> GetWeaponStorages(Map map)
         {
-            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            if (WeaponStoragesToUse != null)
             {
-                if (map == null || 
-                    (ws.Spawned && ws.Map == map))
+                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
                 {
-                    yield return ws;
+                    if (map == null ||
+                        (ws.Spawned && ws.Map == map))
+                    {
+                        yield return ws;
+                    }
                 }
             }
         }
