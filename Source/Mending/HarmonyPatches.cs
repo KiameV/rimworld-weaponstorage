@@ -16,13 +16,20 @@ namespace MendingWeaponStoragePatch
         {
             if (ModsConfig.ActiveModsInLoadOrder.Any(m => "MendAndRecycle".Equals(m.Name)))
             {
-                var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
-                harmony.PatchAll(Assembly.GetExecutingAssembly());
+                try
+                {
+                    var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
+                    harmony.PatchAll(Assembly.GetExecutingAssembly());
 
-                Log.Message(
-                    "MendingWeaponStoragePatch Harmony Patches:" + Environment.NewLine +
-                    "  Postfix:" + Environment.NewLine +
-                    "    WorkGiver_DoBill.TryFindBestBillIngredients - Priority Last");
+                    Log.Message(
+                        "MendingWeaponStoragePatch Harmony Patches:" + Environment.NewLine +
+                        "  Postfix:" + Environment.NewLine +
+                        "    WorkGiver_DoBill.TryFindBestBillIngredients - Priority Last");
+                }
+                catch(Exception e)
+                {
+                    Log.Error("Failed to patch Mending & Recycling." + Environment.NewLine + e.Message);
+                }
             }
             else
             {
