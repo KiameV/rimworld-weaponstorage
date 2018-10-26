@@ -65,6 +65,12 @@ namespace WeaponStorage
 
         public static void Add(Building_WeaponStorage ws)
         {
+            if (ws == null || ws.Map == null)
+            {
+                Log.Error("Cannot add WeaponStorage that is either null or has a null map.");
+                return;
+            }
+
             if (!WeaponStoragesToUse.Contains(ws))
             {
                 WeaponStoragesToUse.AddLast(ws);
@@ -149,6 +155,20 @@ namespace WeaponStorage
         public static void Remove(Building_WeaponStorage ws)
         {
             WeaponStoragesToUse.Remove(ws);
+        }
+
+        public static void Remove(Map map)
+        {
+            LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First;
+            while (n != null)
+            {
+                var next = n.Next;
+                if (n.Value.Map == map)
+                {
+                    WeaponStoragesToUse.Remove(n);
+                }
+                n = next;
+            }
         }
 
         private List<AssignedWeaponContainer> tmp = null;

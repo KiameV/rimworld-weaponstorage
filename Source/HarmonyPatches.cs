@@ -31,6 +31,7 @@ namespace WeaponStorage
                 "    Pawn_EquipmentTracker.TryDropEquipment - Priority First" + Environment.NewLine +
                 "    Pawn_EquipmentTracker.MakeRoomFor - Priority First" + Environment.NewLine +
                 "    ScribeSaver.InitSaving" + Environment.NewLine +
+                "    SettlementAbandonUtility.Abandon" + Environment.NewLine +
                 "  Postfix:" + Environment.NewLine +
                 "    Pawn_TraderTracker.ColonyThingsWillingToBuy" + Environment.NewLine +
                 "    TradeShip.ColonyThingsWillingToBuy" + Environment.NewLine +
@@ -538,6 +539,16 @@ namespace WeaponStorage
             {
                 s.ReclaimWeapons();
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(SettlementAbandonUtility), "Abandon")]
+    static class Patch_SettlementAbandonUtility_Abandon
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(MapParent settlement)
+        {
+            WorldComp.Remove(settlement.Map);
         }
     }
 }
