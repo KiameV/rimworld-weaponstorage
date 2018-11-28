@@ -44,20 +44,19 @@ namespace MendingWeaponStoragePatch
 	{
 		static void Postfix(ref bool __result, WorkGiver_DoBill __instance, Bill bill, Pawn pawn, Thing billGiver, List<ThingCount> chosen)
 		{
-			if (__instance is MendAndRecycle.WorkGiver_DoBill &&
-				__result == false &&
+			if (__result == false &&
 				pawn != null && bill != null && bill.recipe != null &&
                 bill.Map == pawn.Map &&
                 bill.recipe.defName.IndexOf("Weapon") != -1)
             {
-                IEnumerable<Building_WeaponStorage> dressers = WorldComp.GetWeaponStorages(bill.Map);
-                if (dressers == null)
+                IEnumerable<Building_WeaponStorage> storages = WorldComp.GetWeaponStorages(bill.Map);
+                if (storages == null)
                 {
                     Log.Message("MendingWeaponStoragePatch failed to retrieve WeaponStorages");
                     return;
                 }
 
-                foreach (Building_WeaponStorage ws in dressers)
+                foreach (Building_WeaponStorage ws in storages)
                 {
                     if ((float)(ws.Position - billGiver.Position).LengthHorizontalSquared < bill.ingredientSearchRadius * bill.ingredientSearchRadius)
                     {
