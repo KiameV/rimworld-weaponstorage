@@ -74,9 +74,7 @@ namespace WeaponStorage
 										{
 											if (WorldComp.TryRemoveWeapon(d, f, out ThingWithComps weapon))
 											{
-												HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
-
-												weapons.SetLastThingUsed(pawn, weapon);
+												HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
 											}
 										}, "WeaponStorage.EquipShared"));
 								}
@@ -118,7 +116,7 @@ namespace WeaponStorage
                 a.defaultLabel = sb.ToString();
                 a.defaultDesc = "Equip this item.";
                 a.activateSound = SoundDef.Named("Click");
-                a.groupKey = def.GetHashCode();
+                a.groupKey = (label + def).GetHashCode();
                 a.action = equipWeaponAction;
                 return a;
             }

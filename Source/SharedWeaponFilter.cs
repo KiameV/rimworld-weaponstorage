@@ -38,7 +38,8 @@ namespace WeaponStorage
 					qc >= this.QualityRange.min && qc <= this.QualityRange.max &&
 					t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints && t.HitPoints <= this.HpRange.max * t.def.BaseMaxHitPoints;
 			}
-			return false;
+			return
+				t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints && t.HitPoints <= this.HpRange.max * t.def.BaseMaxHitPoints;
 		}
 
 		public bool FoundDefCacheContains(ThingDef d)
@@ -51,23 +52,20 @@ namespace WeaponStorage
 			long now = DateTime.Now.Ticks;
 			if (now - this.lastCacheUpdate > TimeSpan.TicksPerSecond)
 			{
+				this.lastCacheUpdate = now;
+
 				this.foundDefCache.Clear();
 				foreach (ThingDef def in this.AllowedDefs)
 				{
-					bool defFound = false;
 					foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
 					{
 						if (s.HasWeapon(this, def))
 						{
 							this.foundDefCache.Add(def);
-							defFound = true;
 							break;
 						}
 					}
-					if (defFound)
-						break;
 				}
-				this.lastCacheUpdate = now;
 			}
 		}
 	}

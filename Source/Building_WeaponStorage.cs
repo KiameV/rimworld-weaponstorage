@@ -28,6 +28,11 @@ namespace WeaponStorage
 
 		public bool HasWeapon(SharedWeaponFilter filter, ThingDef def)
 		{
+			/*Log.Error("Stored Weapons: " + this.StoredWeapons.Count);
+			foreach (ThingDef d in this.StoredWeapons.Keys)
+			{
+				Log.Warning("    " + d.label);
+			}*/
 			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
 			{
 				foreach (ThingWithComps t in l)

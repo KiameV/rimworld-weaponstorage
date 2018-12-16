@@ -60,7 +60,11 @@ namespace WeaponStorage
                     // In case the primary weapon is not removed
                     if (weapon.Spawned == false)
                     {
-                        if (!c.Weapons.Contains(weapon))
+						if (c == null)
+						{
+							WorldComp.Add(weapon);
+						}
+                        else if (!c.Weapons.Contains(weapon))
                         {
                             c.Weapons.Add(weapon);
                         }
@@ -68,8 +72,12 @@ namespace WeaponStorage
                     }
                     Log.Warning("Failed to replace " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "] with [" + weapon.Label + "].");
                     return;
-                }
-                if (!c.Weapons.Contains(primary))
+				}
+				if (c == null)
+				{
+					WorldComp.Add(primary);
+				}
+				else if (!c.Weapons.Contains(primary))
                 {
                     c.Weapons.Add(primary);
                 }
@@ -110,16 +118,14 @@ namespace WeaponStorage
         static void Postfix(Pawn_DraftController __instance)
         {
             Pawn pawn = __instance.pawn;
-            AssignedWeaponContainer weapons;
-            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out weapons))
-            {
-                ThingWithComps w;
-                if (weapons.TryGetLastThingUsed(pawn, out w))
-                {
-                    HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
-                }
-            }
-        }
+			if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer weapons))
+			{
+				if (weapons.TryGetLastThingUsed(pawn, out ThingWithComps w))
+				{
+					HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
+				}
+			}
+		}
     }
 
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
@@ -175,17 +181,15 @@ namespace WeaponStorage
                 pawn.Faction == Faction.OfPlayer &&
                 pawn.def.race.Humanlike)
             {
-                AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out c) &&
-                    pawn.equipment.Primary == null)
-                {
-                    ThingWithComps w;
-                    if (c.TryGetLastThingUsed(pawn, out w))
-                    {
-                        HarmonyPatchUtil.EquipWeapon(w, pawn, c);
-                    }
-                }
-            }
+				if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c) &&
+					pawn.equipment.Primary == null)
+				{
+					if (c.TryGetLastThingUsed(pawn, out ThingWithComps w))
+					{
+						HarmonyPatchUtil.EquipWeapon(w, pawn, c);
+					}
+				}
+			}
         }
     }
 
