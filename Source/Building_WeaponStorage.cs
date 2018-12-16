@@ -10,7 +10,7 @@ namespace WeaponStorage
 {
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
-        private readonly LinkedList<ThingWithComps> storedWeapons = new LinkedList<ThingWithComps>();
+        public readonly Dictionary<ThingDef, LinkedList<ThingWithComps>> StoredWeapons = new Dictionary<ThingDef, LinkedList<ThingWithComps>>();
 
         private Map CurrentMap { get; set; }
 
@@ -19,12 +19,25 @@ namespace WeaponStorage
         private bool includeInTradeDeals = true;
         public bool IncludeInTradeDeals { get { return this.includeInTradeDeals; } }
 
+		public bool IncludeInSharedWeapons = true;
+
         public Building_WeaponStorage()
         {
             this.AllowAdds = true;
-        }
+		}
 
-        public override void SpawnSetup(Map map, bool respawningAfterLoad)
+		public bool HasWeapon(SharedWeaponFilter filter, ThingDef def)
+		{
+			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
+			{
+				foreach (ThingWithComps t in l)
+					if (filter.Allows(t))
+						return true;
+			}
+			return false;
+		}
+
+		public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
             this.CurrentMap = map;
@@ -63,7 +76,7 @@ namespace WeaponStorage
             }
         }
 
-        public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
+		public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
         {
             try
             {
@@ -83,13 +96,14 @@ namespace WeaponStorage
         {
             try
             {
-                if (this.storedWeapons != null)
+                if (this.StoredWeapons != null)
                 {
-                    foreach (ThingWithComps t in this.storedWeapons)
-                    {
-                        this.DropThing(t, false);
-                    }
-                    this.storedWeapons.Clear();
+					foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
+						foreach (ThingWithComps t in l)
+						{
+							this.DropThing(t, false);
+						}
+                    this.StoredWeapons.Clear();
                 }
             }
             catch (Exception e)
@@ -110,11 +124,25 @@ namespace WeaponStorage
             }
         }
 
-        public int Count
+		public bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, out ThingWithComps weapon)
+		{
+			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
+				for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
+					if (filter.Allows(n.Value))
+					{
+						weapon = n.Value;
+						l.Remove(n);
+						return true;
+					}
+			weapon = null;
+			return false;
+		}
+
+		public int Count
         {
             get
             {
-                return this.storedWeapons.Count;
+                return this.StoredWeapons.Count;
             }
         }
 
@@ -149,8 +177,9 @@ namespace WeaponStorage
             try
             {
                 this.AllowAdds = false;
-                this.DropWeapons(this.storedWeapons, false);
-                this.storedWeapons.Clear();
+				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
+					this.DropWeapons(l, false);
+                this.StoredWeapons.Clear();
             }
             finally
             {
@@ -178,7 +207,7 @@ namespace WeaponStorage
 
             base.Notify_ReceivedThing(newItem);
 
-            if (!this.storedWeapons.Contains((ThingWithComps)newItem))
+            if (!this.Contains((ThingWithComps)newItem))
             {
                 // Must go after 'contains' check. In the case of 'drop on floor' Notify_ReceiveThing gets called before the weapon is removed from the list
                 if (newItem.Spawned)
@@ -192,7 +221,15 @@ namespace WeaponStorage
             }
         }
 
-        /*internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
+		private bool Contains(ThingWithComps t)
+		{
+			if (t != null &&
+				this.StoredWeapons.TryGetValue(t.def, out LinkedList<ThingWithComps> l))
+				return l.Contains(t);
+			return false;
+		}
+
+		/*internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
         {
             if (weapons == null)
                 return;
@@ -203,7 +240,7 @@ namespace WeaponStorage
             }
         }*/
 
-        internal bool AddWeapon(ThingWithComps weapon)
+		internal bool AddWeapon(ThingWithComps weapon)
         {
             if (weapon != null)
             {
@@ -214,7 +251,7 @@ namespace WeaponStorage
                         weapon.DeSpawn();
                     }
 
-                    if (!this.storedWeapons.Contains(weapon))
+                    if (!this.Contains(weapon))
                     {
                         this.AddToSortedList(weapon);
                     }
@@ -227,51 +264,36 @@ namespace WeaponStorage
         private void AddToSortedList(ThingWithComps weapon)
         {
             string weaponDefLabel = weapon.def.label;
-            bool found = false;
-            for (LinkedListNode<ThingWithComps> n = this.storedWeapons.First; n != null; n = n.Next)
+			if (!this.StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> l))
+			{
+				l = new LinkedList<ThingWithComps>();
+				this.StoredWeapons[weapon.def] = l;
+			}
+
+			for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
             {
-                string nDefLabel = n.Value.def.label;
-                if (nDefLabel.Equals(weaponDefLabel))
-                {
-                    found = true;
-                    QualityCategory weaponQuality;
-                    QualityCategory currentQuality;
-                    if (weapon.TryGetQuality(out weaponQuality) &&
-                        n.Value.TryGetQuality(out currentQuality))
-                    {
-                        if ((weaponQuality > currentQuality) ||
-                            (weaponQuality == currentQuality &&
-                             weapon.HitPoints >= n.Value.HitPoints))
-                        {
-                            this.storedWeapons.AddBefore(n, weapon);
-                            return;
-                        }
-                    }
-                }
-                else if (weaponDefLabel.CompareTo(nDefLabel) < 0)
-                {
-                    this.storedWeapons.AddBefore(n, weapon);
-                    return;
-                }
-                else if (found)
-                {
-                    this.storedWeapons.AddBefore(n, weapon);
-                    return;
-                }
+				if (weapon.TryGetQuality(out QualityCategory weaponQuality) &&
+					n.Value.TryGetQuality(out QualityCategory currentQuality))
+				{
+					if ((weaponQuality > currentQuality) ||
+						(weaponQuality == currentQuality &&
+							weapon.HitPoints >= n.Value.HitPoints))
+					{
+						l.AddBefore(n, weapon);
+						return;
+					}
+				}
             }
-            this.storedWeapons.AddLast(weapon);
+            l.AddLast(weapon);
         }
 
         internal int GetWeaponCount(ThingDef expectedDef, QualityRange qualityRange, FloatRange hpRange, ThingFilter ingredientFilter)
         {
             int count = 0;
-            foreach (ThingWithComps t in this.storedWeapons)
-            {
-                if (this.Allows(t, expectedDef, qualityRange, hpRange, ingredientFilter))
-                {
-                    ++count;
-                }
-            }
+			foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
+				foreach (ThingWithComps t in l)
+					if (this.Allows(t, expectedDef, qualityRange, hpRange, ingredientFilter))
+						++count;
             return count;
         }
 
@@ -333,17 +355,23 @@ namespace WeaponStorage
         internal bool TryGetFilteredWeapons(Bill bill, ThingFilter filter, out List<ThingWithComps> gotten)
         {
             gotten = null;
-            foreach (ThingWithComps weapon in this.storedWeapons)
-            {
-                if (bill.IsFixedOrAllowedIngredient(weapon) && filter.Allows(weapon))
-                {
-                    if (gotten == null)
-                    {
-                        gotten = new List<ThingWithComps>();
-                    }
-                    gotten.Add(weapon);
-                }
-            }
+			foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in this.StoredWeapons)
+			{
+				if (filter.Allows(kv.Key))
+				{
+					foreach (ThingWithComps weapon in kv.Value)
+					{
+						if (bill.IsFixedOrAllowedIngredient(weapon) && filter.Allows(weapon))
+						{
+							if (gotten == null)
+							{
+								gotten = new List<ThingWithComps>();
+							}
+							gotten.Add(weapon);
+						}
+					}
+				}
+			}
             return gotten != null;
         }
 
@@ -390,15 +418,18 @@ namespace WeaponStorage
             
             if (Scribe.mode == LoadSaveMode.Saving)
             {
-                this.temp = new List<ThingWithComps>(this.storedWeapons);
+                this.temp = new List<ThingWithComps>();
+				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
+					this.temp.AddRange(l);
             }
 
-            Scribe_Collections.Look(ref this.temp, "storedWeapons", LookMode.Deep, new object[0]);
+            Scribe_Collections.Look(ref this.temp, false, "storedWeapons", LookMode.Deep, new object[0]);
             Scribe_Values.Look<bool>(ref this.includeInTradeDeals, "includeInTradeDeals", true, false);
-            
-            if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
+			Scribe_Values.Look<bool>(ref this.IncludeInSharedWeapons, "includeInSharedWeapons", true, false);
+
+			if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
-                this.storedWeapons.Clear();
+                this.StoredWeapons.Clear();
                 if (this.temp != null)
                 {
                     foreach (ThingWithComps t in this.temp)
@@ -431,7 +462,7 @@ namespace WeaponStorage
             sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.Count".Translate());
             sb.Append(": ");
-            sb.Append(this.storedWeapons.Count);
+            sb.Append(this.StoredWeapons.Count);
             sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.IncludeInTradeDeals".Translate());
             sb.Append(": ");
@@ -439,24 +470,26 @@ namespace WeaponStorage
             return sb.ToString();
         }
 
-        public IEnumerable<ThingWithComps> StoredWeapons
+        public IEnumerable<ThingWithComps> AllWeapons
         {
             get
             {
-                return this.storedWeapons;
+				foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
+					foreach (ThingWithComps t in l)
+						yield return t;
             }
-        }
+		}
 
-        /// <summary>
-        /// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
-        /// </summary>
-        public bool Remove(ThingWithComps weapon, bool forbidden = true)
+		/// <summary>
+		/// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
+		/// </summary>
+		public bool Remove(ThingWithComps weapon, bool forbidden = true)
         {
             try
             {
                 if (this.DropThing(weapon, forbidden))
                 {
-                    return this.storedWeapons.Remove(weapon);
+                    return this.Remove(weapon);
                 }
             }
             catch (Exception e)
@@ -474,7 +507,9 @@ namespace WeaponStorage
 #if DEBUG
             Log.Warning(this.GetType().Name + ".RemoveNoDrop " + thing.Label);
 #endif
-            return this.storedWeapons.Remove(thing);
+			if (this.StoredWeapons.TryGetValue(thing.def, out LinkedList<ThingWithComps> l))
+				return l.Remove(thing);
+			return false;
         }
 
         public override void TickLong()
@@ -492,25 +527,29 @@ namespace WeaponStorage
                 WorldComp.SortWeaponStoragesToUse();
 
                 List<ThingWithComps> removed = new List<ThingWithComps>();
-                LinkedListNode<ThingWithComps> n = this.storedWeapons.First;
-                while (n != null)
-                {
-                    var next = n.Next;
-                    if (!base.settings.AllowedToAccept(n.Value))
-                    {
-                        removed.Add(n.Value);
-                        this.storedWeapons.Remove(n);
-                    }
-                    n = next;
-                }
+				LinkedListNode<ThingWithComps> n;
+				foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
+				{
+					n = l.First;
+					while (n != null)
+					{
+						var next = n.Next;
+						if (!base.settings.AllowedToAccept(n.Value))
+						{
+							removed.Add(n.Value);
+							l.Remove(n);
+						}
+						n = next;
+					}
 
-                foreach (ThingWithComps t in removed)
-                {
-                    if (!WorldComp.Add(t))
-                    {
-                        this.DropThing(t, false);
-                    }
-                }
+					foreach (ThingWithComps t in removed)
+					{
+						if (!WorldComp.Add(t))
+						{
+							this.DropThing(t, false);
+						}
+					}
+				}
             }
         }
         #region Gizmos
@@ -537,7 +576,18 @@ namespace WeaponStorage
             });
             ++groupKey;
 
-            l.Add(new Command_Action()
+			l.Add(new Command_Action()
+			{
+				icon = UI.AssignUI.assignweaponsTexture,
+				defaultDesc = "WeaponStorage.SharedWeaponsDesc".Translate(),
+				defaultLabel = "WeaponStorage.SharedWeapons".Translate(),
+				activateSound = SoundDef.Named("Click"),
+				action = delegate { Find.WindowStack.Add(new UI.SharedWeaponsUI()); },
+				groupKey = groupKey,
+			});
+			++groupKey;
+
+			l.Add(new Command_Action()
             {
                 icon = UI.AssignUI.emptyTexture,
                 defaultDesc = "WeaponStorage.EmptyDesc".Translate(),
@@ -574,7 +624,7 @@ namespace WeaponStorage
         }
 #endregion
 
-#region ThingFilters
+		#region ThingFilters
         private ThingFilter previousStorageFilters = new ThingFilter();
         private FieldInfo AllowedDefsFI = typeof(ThingFilter).GetField("allowedDefs", BindingFlags.Instance | BindingFlags.NonPublic);
         protected bool AreStorageSettingsEqual()
@@ -610,6 +660,6 @@ namespace WeaponStorage
             previousAllowed.Clear();
             previousAllowed.AddRange(AllowedDefsFI.GetValue(currentFilters) as HashSet<ThingDef>);
         }
-#endregion
+		#endregion
     }
 }

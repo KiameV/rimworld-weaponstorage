@@ -60,25 +60,31 @@ namespace MendingWeaponStoragePatch
                 {
                     if ((float)(ws.Position - billGiver.Position).LengthHorizontalSquared < bill.ingredientSearchRadius * bill.ingredientSearchRadius)
                     {
-                        foreach (ThingWithComps t in ws.StoredWeapons)
-                        {
-                            if (bill.ingredientFilter.Allows(t) && 
-                                t.HitPoints != t.MaxHitPoints)
-                            {
-                                ws.Remove(t, false);
-                                if (t.Spawned == false)
-                                {
-                                    Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
-                                    __result = false;
-                                }
-                                else
-                                {
-                                    __result = true;
-                                    chosen.Add(new ThingCount(t, 1));
-                                }
-                                return;
-                            }
-                        }
+						foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in ws.StoredWeapons)
+						{
+							if (bill.ingredientFilter.Allows(kv.Key))
+							{
+								foreach (ThingWithComps t in kv.Value)
+								{
+									if (bill.ingredientFilter.Allows(t) &&
+										t.HitPoints != t.MaxHitPoints)
+									{
+										ws.Remove(t, false);
+										if (t.Spawned == false)
+										{
+											Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
+											__result = false;
+										}
+										else
+										{
+											__result = true;
+											chosen.Add(new ThingCount(t, 1));
+										}
+										return;
+									}
+								}
+							}
+						}
                     }
                 }
             }

@@ -5,12 +5,14 @@ using Verse;
 namespace WeaponStorage
 {
     public class WorldComp : WorldComponent
-    {
-        public static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
+	{
+		public static List<Building_WeaponStorage> WeaponStoragesToUse = new List<Building_WeaponStorage>();
 
-        public static LinkedList<Building_WeaponStorage> WeaponStoragesToUse { get; private set; }
+		public static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
 
-        private static bool defInitialized = false;
+		public static List<SharedWeaponFilter> SharedWeaponFilter = new List<SharedWeaponFilter>();
+
+		private static bool defInitialized = false;
 
         public WorldComp(World world) : base(world)
         {
@@ -53,14 +55,11 @@ namespace WeaponStorage
             }
             AssignedWeapons.Clear();
 
-            if (WeaponStoragesToUse == null)
-            {
-                WeaponStoragesToUse = new LinkedList<Building_WeaponStorage>();
-            }
-            else
-            {
-                WeaponStoragesToUse.Clear();
-            }
+			SharedWeaponFilter.Clear();
+
+			if (WeaponStoragesToUse == null)
+                WeaponStoragesToUse = new List<Building_WeaponStorage>();
+			WeaponStoragesToUse.Clear();
         }
 
         public static void Add(Building_WeaponStorage ws)
@@ -72,16 +71,14 @@ namespace WeaponStorage
             }
 
             if (!WeaponStoragesToUse.Contains(ws))
-            {
-                WeaponStoragesToUse.AddLast(ws);
-            }
+                WeaponStoragesToUse.Add(ws);
         }
 
         public static bool Add(ThingWithComps t)
         {
-            if (t != null)
-            {
-                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+			if (t != null)
+			{
+				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
                 {
                     return ws.AddWeapon(t);
                 }
@@ -89,16 +86,29 @@ namespace WeaponStorage
             return false;
         }
 
+		public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, out ThingWithComps weapon)
+		{
+			if (def != null)
+			{
+				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+				{
+					if (ws.TryRemoveWeapon(def, filter, out weapon))
+						return true;
+					break;
+				}
+			}
+			weapon = null;
+			return false;
+		}
+
         public static bool Drop(ThingWithComps w)
         {
-            if (WeaponStoragesToUse.Count > 0)
-            {
-                Building_WeaponStorage s = WeaponStoragesToUse.First.Value;
-                if (BuildingUtil.DropThing(w, s, s.Map, false))
-                {
-                    return true;
-                }
-            }
+			foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+				if (BuildingUtil.DropThing(w, ws, ws.Map, false))
+				{
+					return true;
+				}
+
             return false;
         }
 
@@ -159,16 +169,13 @@ namespace WeaponStorage
 
         public static void Remove(Map map)
         {
-            LinkedListNode<Building_WeaponStorage> n = WeaponStoragesToUse.First;
-            while (n != null)
-            {
-                var next = n.Next;
-                if (n.Value.Map == map)
-                {
-                    WeaponStoragesToUse.Remove(n);
-                }
-                n = next;
-            }
+			for (int i = WeaponStoragesToUse.Count - 1; i >= 0; --i)
+			{
+				if (WeaponStoragesToUse[i].Map == map)
+				{
+					WeaponStoragesToUse.RemoveAt(i);
+				}
+			}
         }
 
         private List<AssignedWeaponContainer> tmp = null;
@@ -182,8 +189,9 @@ namespace WeaponStorage
             }
 
             Scribe_Collections.Look(ref tmp, "assignedWeapons", LookMode.Deep, new object[0]);
+			Scribe_Collections.Look(ref SharedWeaponFilter, "sharedWeaponFilter", LookMode.Deep, new object[0]);
 
-            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+			if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 foreach (AssignedWeaponContainer a in tmp)
                 {
@@ -220,27 +228,8 @@ namespace WeaponStorage
         }
 
         public static void SortWeaponStoragesToUse()
-        {
-            LinkedList<Building_WeaponStorage> l = new LinkedList<Building_WeaponStorage>();
-            foreach (Building_WeaponStorage d in WeaponStoragesToUse)
-            {
-                bool added = false;
-                for (LinkedListNode<Building_WeaponStorage> n = l.First; n != null; n = n.Next)
-                {
-                    if (d.settings.Priority > n.Value.settings.Priority)
-                    {
-                        added = true;
-                        l.AddBefore(n, d);
-                        break;
-                    }
-                }
-                if (!added)
-                {
-                    l.AddLast(d);
-                }
-            }
-            WeaponStoragesToUse.Clear();
-            WeaponStoragesToUse = l;
-        }
+		{
+			WeaponStoragesToUse.Sort((l, r) => l.settings.Priority.CompareTo(r.settings.Priority));
+		}
     }
 }

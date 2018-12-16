@@ -19,6 +19,8 @@ namespace WeaponStorage.UI
             collectTexture = ContentFinder<Texture2D>.Get("UI/collect", true);
             yesSellTexture = ContentFinder<Texture2D>.Get("UI/yessell", true);
             noSellTexture = ContentFinder<Texture2D>.Get("UI/nosell", true);
+			meleeTexture = ContentFinder<Texture2D>.Get("UI/melee", true);
+			rangedTexture = ContentFinder<Texture2D>.Get("UI/ranged", true);
         }
 
         public static Texture2D DropTexture;
@@ -28,15 +30,16 @@ namespace WeaponStorage.UI
         public static Texture2D collectTexture;
         public static Texture2D yesSellTexture;
         public static Texture2D noSellTexture;
-        #endregion
+		public static Texture2D meleeTexture;
+		public static Texture2D rangedTexture;
+		#endregion
 
-        private readonly Building_WeaponStorage weaponStorage;
-
-        
+		private readonly Building_WeaponStorage weaponStorage;
+		
         private AssignedWeaponContainer assignedWeapons = null;
 
         private List<ThingWithComps> PossibleWeapons = null;
-        private List<Pawn> selectablePawns = new List<Pawn>();
+		private IEnumerable<SelectablePawns> selectablePawns;
 
         private Vector2 scrollPosition = new Vector2(0, 0);
 
@@ -54,13 +57,7 @@ namespace WeaponStorage.UI
             this.absorbInputAroundWindow = true;
             this.forcePause = true;
 
-            foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
-            {
-                if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
-                {
-                    selectablePawns.Add(p);
-                }
-            }
+			this.selectablePawns = Util.GetPawns();
         }
 
         public override Vector2 InitialSize
@@ -97,7 +94,7 @@ namespace WeaponStorage.UI
                     this.PossibleWeapons.Add(w);
                 }
             }
-            foreach (ThingWithComps w in this.weaponStorage.StoredWeapons)
+            foreach (ThingWithComps w in this.weaponStorage.AllWeapons)
             {
                 this.PossibleWeapons.Add(w);
             }
@@ -122,22 +119,24 @@ namespace WeaponStorage.UI
             {
                 Widgets.Label(new Rect(0, 0, 100, 30), "WeaponStorage.AssignTo".Translate());
                 string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "Pawn";
-                if (Widgets.ButtonText(new Rect(120, 0, 150, 30), label))
+                if (Widgets.ButtonText(new Rect(120, 0, 200, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
-                    foreach (Pawn p in this.selectablePawns)
+                    foreach (SelectablePawns p in this.selectablePawns)
                     {
-                        options.Add(new FloatMenuOption(p.Name.ToStringShort, delegate
+                        options.Add(new FloatMenuOption(p.LabelAndStats, delegate
                         {
-                            if (!WorldComp.AssignedWeapons.TryGetValue(p, out this.assignedWeapons))
+                            if (!WorldComp.AssignedWeapons.TryGetValue(p.Pawn, out this.assignedWeapons))
                             {
-                                this.assignedWeapons = new AssignedWeaponContainer();
-                                this.assignedWeapons.Pawn = p;
-                                if (p.equipment.Primary != null)
+								this.assignedWeapons = new AssignedWeaponContainer
+								{
+									Pawn = p.Pawn
+								};
+								if (p.Pawn.equipment.Primary != null)
                                 {
-                                    this.assignedWeapons.Add(p.equipment.Primary);
+                                    this.assignedWeapons.Add(p.Pawn.equipment.Primary);
                                 }
-                                WorldComp.AssignedWeapons.Add(p, this.assignedWeapons);
+                                WorldComp.AssignedWeapons.Add(p.Pawn, this.assignedWeapons);
                             }
 
                             this.RebuildPossibleWeapons();
@@ -146,7 +145,7 @@ namespace WeaponStorage.UI
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
 
-                this.textBuffer = Widgets.TextField(new Rect(300, 0, 100, 30), this.textBuffer);
+                this.textBuffer = Widgets.TextField(new Rect(350, 0, 100, 30), this.textBuffer);
 
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
@@ -249,7 +248,7 @@ namespace WeaponStorage.UI
                     }
 #endif
                     int rowIndex = 0;
-                    foreach (ThingWithComps t in this.weaponStorage.StoredWeapons)
+                    foreach (ThingWithComps t in this.weaponStorage.AllWeapons)
                     {
 #if TRACE
                         if (i > 600)

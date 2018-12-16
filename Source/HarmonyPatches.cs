@@ -238,7 +238,7 @@ namespace WeaponStorage
             {
                 if (ws.Map == map && ws.Spawned && ws.IncludeInTradeDeals)
                 {
-                    foreach (ThingWithComps t in ws.StoredWeapons)
+                    foreach (ThingWithComps t in ws.AllWeapons)
                     {
                         l.Add(t);
                     }

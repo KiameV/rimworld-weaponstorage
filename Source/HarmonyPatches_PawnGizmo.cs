@@ -15,46 +15,78 @@ namespace WeaponStorage
             static void Postfix(Pawn_DraftController __instance, ref IEnumerable<Gizmo> __result)
             {
                 try
-                {
-                    AssignedWeaponContainer weapons;
-                    if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out weapons))
-                    {
-                        List<Gizmo> l = new List<Gizmo>();
-                        if (__result != null)
-                            l.AddRange(__result);
-                        Pawn pawn = __instance.pawn;
+				{
+					Pawn pawn = __instance.pawn;
+					List<Gizmo> l = null;
+					if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer weapons))
+					{
+						l = new List<Gizmo>();
+						if (__result != null)
+							l.AddRange(__result);
 
-                        foreach (ThingWithComps weapon in weapons.Weapons)
-                        {
-                            bool isTool = Settings.IsTool(weapon);
-                            bool show = false;
-                            if (pawn.Drafted)
-                            {
-                                show = true;
-                            }
-                            else // Not drafted
-                            {
-                                if (isTool || Settings.ShowWeaponsWhenNotDrafted)
-                                {
-                                    show = true;
-                                }
-                            }
+						foreach (ThingWithComps weapon in weapons.Weapons)
+						{
+							bool isTool = Settings.IsTool(weapon);
+							bool show = false;
+							if (pawn.Drafted)
+							{
+								show = true;
+							}
+							else // Not drafted
+							{
+								if (isTool || Settings.ShowWeaponsWhenNotDrafted)
+								{
+									show = true;
+								}
+							}
 
-                            if (show)
-                            {
-                                l.Add(CreateEquipWeaponGizmo(weapon, pawn,
-                                    delegate
-                                    {
-                                        HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
+							if (show)
+							{
+								l.Add(CreateEquipWeaponGizmo(weapon.def, pawn,
+									delegate
+									{
+										HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
 
-                                        weapons.SetLastThingUsed(pawn, weapon);
-                                    }));
-                            }
-                        }
+										weapons.SetLastThingUsed(pawn, weapon);
+									}));
+							}
+						}
+					}
 
-                        __result = l;
-                    }
-                }
+					foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
+					{
+						f.UpdateFoundDefCache();
+						if (f.AssignedPawns.Contains(pawn))
+						{
+							if (l == null)
+							{
+								l = new List<Gizmo>();
+								if (__result != null)
+									l.AddRange(__result);
+							}
+
+							foreach (ThingDef d in f.AllowedDefs)
+							{
+								if (f.FoundDefCacheContains(d))
+								{
+									l.Add(CreateEquipWeaponGizmo(d, pawn,
+										delegate
+										{
+											if (WorldComp.TryRemoveWeapon(d, f, out ThingWithComps weapon))
+											{
+												HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
+
+												weapons.SetLastThingUsed(pawn, weapon);
+											}
+										}, "WeaponStorage.EquipShared"));
+								}
+							}
+						}
+					}
+
+					if (l != null)
+						__result = l;
+				}
                 catch (Exception e)
                 {
                     Log.ErrorOnce(
@@ -65,28 +97,28 @@ namespace WeaponStorage
                 }
             }
 
-            static Command_Action CreateEquipWeaponGizmo(Thing weapon, Pawn pawn, Action equipWeaponAction)
+            private static Command_Action CreateEquipWeaponGizmo(ThingDef def, Pawn pawn, Action equipWeaponAction, string label = "WeaponStorage.Equip")
             {
                 Command_Action a = new Command_Action();
-                if (weapon.def.uiIcon != null)
+                if (def.uiIcon != null)
                 {
-                    a.icon = weapon.def.uiIcon;
+                    a.icon = def.uiIcon;
                 }
-                else if (weapon.def.graphicData.texPath != null)
+                else if (def.graphicData.texPath != null)
                 {
-                    a.icon = ContentFinder<UnityEngine.Texture2D>.Get(weapon.def.graphicData.texPath, true);
+                    a.icon = ContentFinder<UnityEngine.Texture2D>.Get(def.graphicData.texPath, true);
                 }
                 else
                 {
                     a.icon = null;
                 }
-                StringBuilder sb = new StringBuilder("WeaponStorage.Equip".Translate());
+                StringBuilder sb = new StringBuilder(label.Translate());
                 sb.Append(" ");
-                sb.Append(weapon.def.label);
+                sb.Append(def.label);
                 a.defaultLabel = sb.ToString();
                 a.defaultDesc = "Equip this item.";
                 a.activateSound = SoundDef.Named("Click");
-                a.groupKey = weapon.def.GetHashCode();
+                a.groupKey = def.GetHashCode();
                 a.action = equipWeaponAction;
                 return a;
             }

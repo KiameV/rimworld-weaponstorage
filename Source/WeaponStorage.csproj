@@ -59,7 +59,11 @@
     <Compile Include="Building_RepairWeaponStorage.cs" />
     <Compile Include="SaveStorageSettingsUtil.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="SharedWeaponFilter.cs" />
     <Compile Include="UI\AssignUI.cs" />
+    <Compile Include="UI\SharedWeaponFilterUI.cs" />
+    <Compile Include="UI\SharedWeaponsUI.cs" />
+    <Compile Include="UI\Util.cs" />
     <Compile Include="UI\WeaponSelected.cs" />
   </ItemGroup>
   <ItemGroup>
