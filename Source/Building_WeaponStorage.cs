@@ -21,7 +21,9 @@ namespace WeaponStorage
 
 		public bool IncludeInSharedWeapons = true;
 
-        public Building_WeaponStorage()
+		private List<Thing> forceAddedWeapons = null;
+
+		public Building_WeaponStorage()
         {
             this.AllowAdds = true;
 		}
@@ -380,14 +382,24 @@ namespace WeaponStorage
             return gotten != null;
         }
 
-        internal void ReclaimWeapons()
+        internal void ReclaimWeapons(bool force = false)
         {
             List<ThingWithComps> l = BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
             if (l.Count > 0)
             {
                 foreach (ThingWithComps t in l)
                 {
-                    this.AddWeapon(t);
+					if (!this.AddWeapon(t) && 
+						force &&
+						t.Spawned && 
+						t.def.IsWeapon && 
+						!t.def.defName.Equals("WoodLog"))
+					{
+						t.DeSpawn();
+						if (this.forceAddedWeapons == null)
+							forceAddedWeapons = new List<Thing>(l.Count);
+						this.forceAddedWeapons.Add(t);
+					}
                 }
                 l.Clear();
             }
@@ -426,11 +438,14 @@ namespace WeaponStorage
                 this.temp = new List<ThingWithComps>();
 				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
 					this.temp.AddRange(l);
+				if (this.forceAddedWeapons == null)
+					this.forceAddedWeapons = new List<Thing>(0);
             }
 
             Scribe_Collections.Look(ref this.temp, false, "storedWeapons", LookMode.Deep, new object[0]);
             Scribe_Values.Look<bool>(ref this.includeInTradeDeals, "includeInTradeDeals", true, false);
 			Scribe_Values.Look<bool>(ref this.IncludeInSharedWeapons, "includeInSharedWeapons", true, false);
+			Scribe_Collections.Look(ref this.forceAddedWeapons, false, "forceAddedWeapons", LookMode.Deep, new object[0]);
 
 			if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
@@ -452,6 +467,9 @@ namespace WeaponStorage
                     this.temp.Clear();
                     this.temp = null;
                 }
+
+				if (this.forceAddedWeapons != null && this.forceAddedWeapons.Count == 0)
+					this.forceAddedWeapons = null;
             }
         }
 
@@ -556,6 +574,14 @@ namespace WeaponStorage
 					}
 				}
             }
+
+			if (this.forceAddedWeapons != null && this.forceAddedWeapons.Count > 0)
+			{
+				foreach (Thing t in this.forceAddedWeapons)
+					this.DropThing(t, false);
+				this.forceAddedWeapons.Clear();
+				this.forceAddedWeapons = null;
+			}
         }
         #region Gizmos
         public override IEnumerable<Gizmo> GetGizmos()
@@ -632,7 +658,8 @@ namespace WeaponStorage
 		#region ThingFilters
         private ThingFilter previousStorageFilters = new ThingFilter();
         private FieldInfo AllowedDefsFI = typeof(ThingFilter).GetField("allowedDefs", BindingFlags.Instance | BindingFlags.NonPublic);
-        protected bool AreStorageSettingsEqual()
+
+		protected bool AreStorageSettingsEqual()
         {
             ThingFilter currentFilters = base.settings.filter;
             if (currentFilters.AllowedDefCount != this.previousStorageFilters.AllowedDefCount ||

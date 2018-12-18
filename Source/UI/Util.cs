@@ -22,8 +22,8 @@ namespace WeaponStorage.UI
 				return this.labelAndStats;
 			}
 		}
-		public string Melee => Pawn.skills.GetSkill(SkillDefOf.Melee).levelInt.ToString();
-		public string Ranged => Pawn.skills.GetSkill(SkillDefOf.Shooting).levelInt.ToString();
+		public string Melee => ((Pawn.story.WorkTagIsDisabled(WorkTags.Violent)) ? "-" : Pawn.skills.GetSkill(SkillDefOf.Melee).levelInt.ToString());
+		public string Ranged => ((Pawn.story.WorkTagIsDisabled(WorkTags.Violent)) ? "-" : Pawn.skills.GetSkill(SkillDefOf.Shooting).levelInt.ToString());
 	}
 
 	public static class Util
@@ -31,7 +31,7 @@ namespace WeaponStorage.UI
 		public static IEnumerable<SelectablePawns> GetPawns()
 		{
 			foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
-				if (p.Faction == Faction.OfPlayer && p.def.race.Humanlike)
+				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead)
 					yield return new SelectablePawns(p);
 		}
 	}

@@ -541,7 +541,7 @@ namespace WeaponStorage
         {
             foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
             {
-                s.ReclaimWeapons();
+                s.ReclaimWeapons(true);
             }
         }
     }

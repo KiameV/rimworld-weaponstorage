@@ -224,7 +224,9 @@ namespace WeaponStorage
                     tmp.Clear();
                     tmp = null;
                 }
-            }
+				if (SharedWeaponFilter == null)
+					SharedWeaponFilter = new List<SharedWeaponFilter>();
+			}
         }
 
         public static void SortWeaponStoragesToUse()
