@@ -510,10 +510,14 @@ namespace WeaponStorage
         {
             try
             {
-                if (this.DropThing(weapon, forbidden))
-                {
-                    return this.Remove(weapon);
-                }
+				StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> weapons);
+				weapons.Remove(weapon);
+
+				if (weapon.Spawned ||
+					this.DropThing(weapon, forbidden))
+				{
+					return true;
+				}
             }
             catch (Exception e)
             {

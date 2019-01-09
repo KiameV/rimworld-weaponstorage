@@ -534,17 +534,31 @@ namespace WeaponStorage
         }
     }
 
-    [HarmonyPatch(typeof(ScribeSaver), "InitSaving")]
-    static class Patch_ScribeSaver_InitSaving
-    {
-        static void Prefix()
-        {
-            foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
-            {
-                s.ReclaimWeapons(true);
-            }
-        }
-    }
+	[HarmonyPatch(typeof(ScribeSaver), "InitSaving")]
+	static class Patch_ScribeSaver_InitSaving
+	{
+		static void Prefix()
+		{
+			try
+			{
+				foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
+				{
+					try
+					{
+						s.ReclaimWeapons(true);
+					}
+					catch (Exception e)
+					{
+						Log.Warning("Error while reclaiming weapon for storage\n" + e.Message);
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Log.Warning("Error while reclaiming weapons\n" + e.Message);
+			}
+		}
+	}
 
     [HarmonyPatch(typeof(SettlementAbandonUtility), "Abandon")]
     static class Patch_SettlementAbandonUtility_Abandon

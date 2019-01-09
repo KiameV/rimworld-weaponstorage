@@ -45,6 +45,8 @@ namespace WeaponStorage.UI
 
         private string textBuffer = "";
 
+		private float PreviousY = 0;
+
         public AssignUI(Building_WeaponStorage weaponStorage)
         {
             this.weaponStorage = weaponStorage;
@@ -113,7 +115,7 @@ namespace WeaponStorage.UI
 #if TRACE
             ++i;
 #endif
-            GUI.color = Color.white;
+			GUI.color = Color.white;
             Text.Font = GameFont.Small;
             try
             {
@@ -149,27 +151,25 @@ namespace WeaponStorage.UI
 
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
-                int count = (this.PossibleWeapons != null) ? this.PossibleWeapons.Count : ((this.weaponStorage.StoredWeapons != null) ? this.weaponStorage.Count : 0);
-                Rect r = new Rect(0, 20, 450, (count + 1) * (HEIGHT + BUFFER));
-                scrollPosition = GUI.BeginScrollView(new Rect(40, 50, r.width + 16, 400), scrollPosition, r);
-                int row = 0;
+				float width = inRect.width - 100;
+				float x = 0, y = 0;
+				scrollPosition = GUI.BeginScrollView(new Rect(40, 40, width, inRect.height - y - 50), scrollPosition, new Rect(0, 0, width - 16, this.PreviousY));
                 if (this.PossibleWeapons != null)
                 {
                     ThingWithComps weapon;
                     for (int i = 0; i < this.PossibleWeapons.Count; ++i)
                     {
+						x = 0;
                         weapon = this.PossibleWeapons[i];
                         if (!IncludeWeapon(weapon))
                             continue;
-
-                        GUI.BeginGroup(new Rect(0, 55 + row * (HEIGHT + BUFFER), r.width, HEIGHT));
-                        ++row;
 
                         if (this.assignedWeapons != null)
                         {
                             bool isChecked = this.IsAssignedWeapon(i);
                             bool backup = isChecked;
-                            Widgets.Checkbox(0, (HEIGHT - 20) / 2, ref isChecked, 20);
+                            Widgets.Checkbox(x, y, ref isChecked, 20);
+							x += 20 + BUFFER;
                             if (isChecked != backup)
                             {
                                 if (this.IsAssignedWeapon(i))
@@ -207,16 +207,19 @@ namespace WeaponStorage.UI
                             }
                         }
 
-                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), weapon);
+                        Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), weapon);
+						x += HEIGHT + BUFFER;
 
-                        if (Widgets.InfoCardButton(66, 0, weapon))
+                        if (Widgets.InfoCardButton(x, y, weapon))
                         {
                             Find.WindowStack.Add(new Dialog_InfoCard(weapon));
                         }
+						x += HEIGHT + BUFFER;
 
-                        Widgets.Label(new Rect(38 + HEIGHT + 5 + 24, 0, 250, HEIGHT), weapon.Label);
+                        Widgets.Label(new Rect(x, y, 250, HEIGHT), weapon.Label);
+						x += 250 + BUFFER;
 
-                        if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
+						if (Widgets.ButtonImage(new Rect(width - 16 - HEIGHT, y, 20, 20), DropTexture))
                         {
                             if (this.IsAssignedWeapon(i))
                             {
@@ -236,8 +239,8 @@ namespace WeaponStorage.UI
                             break;
                         }
                         this.PossibleWeapons[i] = weapon;
-                        GUI.EndGroup();
-                    }
+						y += HEIGHT + BUFFER;
+					}
                 }
                 else
                 {
@@ -247,7 +250,6 @@ namespace WeaponStorage.UI
                         Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.Count);
                     }
 #endif
-                    int rowIndex = 0;
                     foreach (ThingWithComps t in this.weaponStorage.AllWeapons)
                     {
 #if TRACE
@@ -259,28 +261,30 @@ namespace WeaponStorage.UI
                         if (!IncludeWeapon(t))
                             continue;
 
-                        GUI.BeginGroup(new Rect(0, 55 + rowIndex * (HEIGHT + BUFFER), r.width, HEIGHT));
+						x = 34;
+						Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
+						x += HEIGHT + BUFFER;
 
-                        Widgets.ThingIcon(new Rect(34, 0, HEIGHT, HEIGHT), t);
-
-                        if (Widgets.InfoCardButton(66, 0, t))
+                        if (Widgets.InfoCardButton(x, y, t))
                         {
                             Find.WindowStack.Add(new Dialog_InfoCard(t));
-                        }
+						}
+						x += HEIGHT + BUFFER;
 
-                        Widgets.Label(new Rect(38 + HEIGHT + 5 + 24, 0, 250, HEIGHT), t.Label);
+						Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
+						x += 250 + BUFFER;
 
-                        if (Widgets.ButtonImage(new Rect(r.xMax - 20, 0, 20, 20), DropTexture))
+						if (Widgets.ButtonImage(new Rect(inRect.width - 16 - HEIGHT, y, 20, 20), DropTexture))
                         {
                             this.weaponStorage.Remove(t);
                             break;
-                        }
-                        GUI.EndGroup();
-                        ++rowIndex;
-                    }
+						}
+						y += HEIGHT + BUFFER;
+					}
                 }
 
                 GUI.EndScrollView();
+				this.PreviousY = y;
             }
             catch (Exception e)
             {
