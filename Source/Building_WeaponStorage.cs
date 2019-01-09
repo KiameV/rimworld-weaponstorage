@@ -384,6 +384,9 @@ namespace WeaponStorage
 
         internal void ReclaimWeapons(bool force = false)
         {
+			if (base.Map == null)
+				return;
+
             List<ThingWithComps> l = BuildingUtil.FindThingsOfTypeNextTo<ThingWithComps>(base.Map, base.Position, 1);
             if (l.Count > 0)
             {
