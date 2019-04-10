@@ -67,7 +67,8 @@ namespace WeaponStorage
 
 							foreach (ThingDef d in f.AllowedDefs)
 							{
-								if (f.FoundDefCacheContains(d))
+								if (d != pawn.equipment.Primary?.def &&
+                                    f.FoundDefCacheContains(d))
 								{
 									l.Add(CreateEquipWeaponGizmo(d, pawn,
 										delegate
@@ -75,6 +76,7 @@ namespace WeaponStorage
 											if (WorldComp.TryRemoveWeapon(d, f, out ThingWithComps weapon))
 											{
 												HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
+                                                f.UpdateDefCache(d);
 											}
 										}, "WeaponStorage.EquipShared"));
 								}

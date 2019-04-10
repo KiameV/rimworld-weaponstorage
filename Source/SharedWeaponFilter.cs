@@ -36,10 +36,10 @@ namespace WeaponStorage
 			{
 				return
 					qc >= this.QualityRange.min && qc <= this.QualityRange.max &&
-					t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints && t.HitPoints <= this.HpRange.max * t.def.BaseMaxHitPoints;
+					t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints;
 			}
 			return
-				t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints && t.HitPoints <= this.HpRange.max * t.def.BaseMaxHitPoints;
+				t.HitPoints >= this.HpRange.min * t.def.BaseMaxHitPoints;
 		}
 
 		public bool FoundDefCacheContains(ThingDef d)
@@ -68,5 +68,21 @@ namespace WeaponStorage
 				}
 			}
 		}
-	}
+
+        public void UpdateDefCache(ThingDef def)
+        {
+            if (this.AllowedDefs.Contains(def))
+            {
+                foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+                {
+                    if (s.HasWeapon(this, def))
+                    {
+                        this.foundDefCache.Add(def);
+                        return;
+                    }
+                }
+            }
+            this.foundDefCache.Remove(def);
+        }
+    }
 }

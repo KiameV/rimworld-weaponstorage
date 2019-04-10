@@ -60,15 +60,18 @@ namespace WeaponStorage
                     // In case the primary weapon is not removed
                     if (weapon.Spawned == false)
                     {
-						if (c == null)
-						{
-							WorldComp.Add(weapon);
-						}
-                        else if (!c.Weapons.Contains(weapon))
+                        if (c == null)
                         {
-                            c.Weapons.Add(weapon);
+                            WorldComp.Add(weapon);
                         }
-                        c.Weapons.Remove(pawn.equipment.Primary);
+                        else
+                        {
+                            if (!c.Weapons.Contains(weapon))
+                            {
+                                c.Weapons.Add(weapon);
+                            }
+                            c.Weapons.Remove(pawn.equipment.Primary);
+                        }
                     }
                     Log.Warning("Failed to replace " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "] with [" + weapon.Label + "].");
                     return;

@@ -274,7 +274,7 @@ namespace WeaponStorage.UI
 						Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
 						x += 250 + BUFFER;
 
-						if (Widgets.ButtonImage(new Rect(inRect.width - 16 - HEIGHT, y, 20, 20), DropTexture))
+						if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
                         {
                             this.weaponStorage.Remove(t);
                             break;
