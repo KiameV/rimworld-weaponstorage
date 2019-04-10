@@ -11,7 +11,7 @@ namespace WeaponStorage.UI
 		private Vector2 scrollPosition = new Vector2(0, 0);
 		private IEnumerable<SelectablePawns> pawns;
 		private SharedWeaponFilter selectedFilter = null;
-		private float y = 0;
+		private float lastX = 0, lastY = 0;
 
 		public SharedWeaponsUI()
 		{
@@ -21,7 +21,7 @@ namespace WeaponStorage.UI
 			this.absorbInputAroundWindow = true;
 			this.forcePause = true;
 
-			this.pawns = Util.GetPawns();
+			this.pawns = Util.GetPawns(true);
 		}
 
 		public override Vector2 InitialSize => new Vector2(800f, 600f);
@@ -66,41 +66,63 @@ namespace WeaponStorage.UI
 			if (WorldComp.SharedWeaponFilter.Count == 0)
 				return;
 
-			// Column Headers - Filter Names
-			float x = 0;
-			this.y = 0;
+            // Column Headers
+            float x = 0f;
 			Widgets.Label(new Rect(x, outerY, 100, 30), "MedGroupColonist".Translate());
 			x += 120;
 			Widgets.DrawTextureFitted(new Rect(x, outerY, 30, 30), AssignUI.meleeTexture, 1f);
 			x += 40;
 			Widgets.DrawTextureFitted(new Rect(x, outerY, 30, 30), AssignUI.rangedTexture, 1f);
 			x += 50;
-			foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
+
+            float outerX = x;
+
+            Vector2 temp = new Vector2(this.scrollPosition.x, 0);
+            Widgets.BeginScrollView(
+                new Rect(x, outerY, inRect.width - outerX - 36, 32), ref temp,
+                new Rect(0, 0, this.lastX, 32), false);
+            x = 0;
+            foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
 			{
-				Widgets.Label(new Rect(x, outerY, 200, 30), f.Label);
-				x += 220;
+				Widgets.Label(new Rect(x, 0, 200, 30), f.Label);
+				x += 150;
 			}
+            Widgets.EndScrollView();
+
 			outerY += 32;
 
-			Widgets.BeginScrollView(
-				new Rect(20, outerY, inRect.width - 20, 500), ref scrollPosition,
-				new Rect(0, 0, inRect.width - 36, y));
+            // Row Headers
+            temp = new Vector2(0, this.scrollPosition.y);
+            Widgets.BeginScrollView(
+                new Rect(20, outerY, 200, inRect.height - outerY - 76), ref temp,
+                new Rect(0, 0, 100, this.lastY), false);
+            float y = 0f;
+            foreach (SelectablePawns p in this.pawns)
+            {
+                x = 0;
+                Widgets.Label(new Rect(0, y + 2, 100, 30), p.Pawn.Name.ToStringShort);
+                x += 110;
+                Widgets.Label(new Rect(x, y + 2, 30, 30), p.Melee);
+                x += 40;
+                Widgets.Label(new Rect(x, y + 2, 30, 30), p.Ranged);
+                x += 50;
+                y += 32;
+                Widgets.DrawLineHorizontal(0, y, 200);
+            }
+            Widgets.EndScrollView();
 
-			this.y = 0;
+            Widgets.BeginScrollView(
+				new Rect(x, outerY, inRect.width - outerX - 20, inRect.height - outerY - 60), ref scrollPosition,
+				new Rect(0, 0, this.lastX, this.lastY));
+			y = 0;
 			foreach (SelectablePawns p in this.pawns)
 			{
 				x = 0;
-				Widgets.Label(new Rect(0, this.y, 100, 30), p.Pawn.Name.ToStringShort);
-				x += 110;
-				Widgets.Label(new Rect(x, this.y, 30, 30), p.Melee);
-				x += 40;
-				Widgets.Label(new Rect(x, this.y, 30, 30), p.Ranged);
-				x += 50;
 				foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
 				{
 					bool orig = f.AssignedPawns.Contains(p.Pawn);
 					bool b = orig;
-					Widgets.Checkbox(new Vector2(x, this.y), ref b, 30);
+					Widgets.Checkbox(new Vector2(x, y + 2), ref b, 26);
 					if (b != orig)
 					{
 						if (b)
@@ -108,14 +130,16 @@ namespace WeaponStorage.UI
 						else
 							f.AssignedPawns.Remove(p.Pawn);
 					}
-					x += 220;
+					x += 150;
 				}
-				this.y += 32;
-			}
+				y += 32;
+                Widgets.DrawLineHorizontal(0, y, this.lastX);
+            }
 
 			Widgets.EndScrollView();
 
-			outerY += 540;
-		}
+            this.lastX = x;
+            this.lastY = y;
+        }
 	}
 }

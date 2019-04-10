@@ -2,7 +2,9 @@
 <ModMetaData>
     <name>[KV] Weapon Storage - 1.0</name>
     <author>Kiame Vivacity</author>
-    <targetVersion>1.0.0</targetVersion>
+	<supportedVersions>
+		<li>1.0</li>
+	</supportedVersions>
 	<url>https://ludeon.com/forums/index.php?topic=35503.0</url>
     <description>Stores weapons.
 	

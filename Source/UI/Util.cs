@@ -28,11 +28,14 @@ namespace WeaponStorage.UI
 
 	public static class Util
 	{
-		public static IEnumerable<SelectablePawns> GetPawns()
+		public static IEnumerable<SelectablePawns> GetPawns(bool excludeNonViolent)
 		{
 			foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
 				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead)
-					yield return new SelectablePawns(p);
+                {
+                    if (!excludeNonViolent || !p.story.WorkTagIsDisabled(WorkTags.Violent))
+                        yield return new SelectablePawns(p);
+                }
 		}
 	}
 }

@@ -59,7 +59,7 @@ namespace WeaponStorage.UI
             this.absorbInputAroundWindow = true;
             this.forcePause = true;
 
-			this.selectablePawns = Util.GetPawns();
+			this.selectablePawns = Util.GetPawns(true);
         }
 
         public override Vector2 InitialSize
