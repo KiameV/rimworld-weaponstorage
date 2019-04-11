@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="BuildingUtil.cs" />
     <Compile Include="Building_WeaponStorage.cs" />
+    <Compile Include="CombatExtendedUtil.cs" />
     <Compile Include="Components.cs" />
     <Compile Include="HarmonyPatches_Bills.cs" />
     <Compile Include="HarmonyPatches.cs" />
@@ -60,6 +61,7 @@
     <Compile Include="SaveStorageSettingsUtil.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="SharedWeaponFilter.cs" />
+    <Compile Include="UI\AmmoUI.cs" />
     <Compile Include="UI\AssignUI.cs" />
     <Compile Include="UI\SharedWeaponFilterUI.cs" />
     <Compile Include="UI\SharedWeaponsUI.cs" />

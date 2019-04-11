@@ -21,6 +21,7 @@ namespace WeaponStorage.UI
             noSellTexture = ContentFinder<Texture2D>.Get("UI/nosell", true);
 			meleeTexture = ContentFinder<Texture2D>.Get("UI/melee", true);
 			rangedTexture = ContentFinder<Texture2D>.Get("UI/ranged", true);
+            ammoTexture = ContentFinder<Texture2D>.Get("UI/ammo", true);
         }
 
         public static Texture2D DropTexture;
@@ -32,9 +33,10 @@ namespace WeaponStorage.UI
         public static Texture2D noSellTexture;
 		public static Texture2D meleeTexture;
 		public static Texture2D rangedTexture;
-		#endregion
+        public static Texture2D ammoTexture;
+        #endregion
 
-		private readonly Building_WeaponStorage weaponStorage;
+        private readonly Building_WeaponStorage weaponStorage;
 		
         private AssignedWeaponContainer assignedWeapons = null;
 

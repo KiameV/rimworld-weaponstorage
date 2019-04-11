@@ -21,7 +21,7 @@ namespace WeaponStorage
                 {
                     foreach (Thing t in map.thingGrid.ThingsAt(new IntVec3(x, position.y, z)))
                     {
-                        if (t.GetType() == typeof(T))
+                        if (typeof(T).IsAssignableFrom(t.GetType()))
                         {
                             list.Add((T)t);
                         }

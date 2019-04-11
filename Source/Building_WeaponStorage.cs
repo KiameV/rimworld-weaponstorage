@@ -30,11 +30,6 @@ namespace WeaponStorage
 
 		public bool HasWeapon(SharedWeaponFilter filter, ThingDef def)
 		{
-			/*Log.Error("Stored Weapons: " + this.StoredWeapons.Count);
-			foreach (ThingDef d in this.StoredWeapons.Keys)
-			{
-				Log.Warning("    " + d.label);
-			}*/
 			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
 			{
 				foreach (ThingWithComps t in l)
@@ -186,6 +181,7 @@ namespace WeaponStorage
                 this.AllowAdds = false;
 				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
 					this.DropWeapons(l, false);
+                CombatExtendedUtil.EmptyAmmo(this);
                 this.StoredWeapons.Clear();
             }
             finally
@@ -199,31 +195,34 @@ namespace WeaponStorage
             if (!this.AllowAdds)
             {
                 if (!newItem.Spawned)
-                {
                     DropThing(newItem);
-                }
                 return;
             }
 
-            if (!(newItem is ThingWithComps) ||
-                !((ThingWithComps)newItem).def.IsWeapon)
+            if (!((newItem is ThingWithComps) && ((ThingWithComps)newItem).def.IsWeapon) &&
+                !CombatExtendedUtil.IsAmmo(newItem))
             {
-                DropThing(newItem);
+                if (!newItem.Spawned)
+                    DropThing(newItem);
                 return;
             }
 
             base.Notify_ReceivedThing(newItem);
 
-            if (!this.Contains((ThingWithComps)newItem))
+            if (!CombatExtendedUtil.AddAmmo(newItem))
             {
-                // Must go after 'contains' check. In the case of 'drop on floor' Notify_ReceiveThing gets called before the weapon is removed from the list
-                if (newItem.Spawned)
-                    newItem.DeSpawn();
-
-                if (!this.AddWeapon(newItem as ThingWithComps) && 
-                    !WorldComp.Add(newItem as ThingWithComps))
+                if (newItem is ThingWithComps &&
+                !this.Contains((ThingWithComps)newItem))
                 {
-                    BuildingUtil.DropThing(newItem, this, this.CurrentMap, true);
+                    // Must go after 'contains' check. In the case of 'drop on floor' Notify_ReceiveThing gets called before the weapon is removed from the list
+                    if (newItem.Spawned)
+                        newItem.DeSpawn();
+
+                    if (!this.AddWeapon(newItem as ThingWithComps) &&
+                        !WorldComp.Add(newItem as ThingWithComps))
+                    {
+                        BuildingUtil.DropThing(newItem, this, this.CurrentMap, true);
+                    }
                 }
             }
         }
@@ -258,6 +257,10 @@ namespace WeaponStorage
                         weapon.DeSpawn();
                     }
 
+                    if (CombatExtendedUtil.AddAmmo(weapon))
+                    {
+                        return true;
+                    }
                     if (!this.Contains(weapon))
                     {
                         this.AddToSortedList(weapon);
@@ -392,10 +395,11 @@ namespace WeaponStorage
             {
                 foreach (ThingWithComps t in l)
                 {
+                    Log.Warning("Found: " + t.Label);
 					if (!this.AddWeapon(t) && 
 						force &&
 						t.Spawned && 
-						t.def.IsWeapon && 
+						(t.def.IsWeapon || CombatExtendedUtil.IsAmmo(t)) && 
 						!t.def.defName.Equals("WoodLog"))
 					{
 						t.DeSpawn();
@@ -625,7 +629,18 @@ namespace WeaponStorage
 			});
 			++groupKey;
 
-			l.Add(new Command_Action()
+            l.Add(new Command_Action()
+            {
+                icon = UI.AssignUI.ammoTexture,
+                defaultDesc = "WeaponStorage.ManageAmmoDesc".Translate(),
+                defaultLabel = "WeaponStorage.ManageAmmo".Translate(),
+                activateSound = SoundDef.Named("Click"),
+                action = delegate { Find.WindowStack.Add(new UI.AmmoUI(this)); },
+                groupKey = groupKey,
+            });
+            ++groupKey;
+
+            l.Add(new Command_Action()
             {
                 icon = UI.AssignUI.emptyTexture,
                 defaultDesc = "WeaponStorage.EmptyDesc".Translate(),
