@@ -3,6 +3,7 @@ using Harmony;
 using RimWorld;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Verse;
 using WeaponStorage;
@@ -85,27 +86,53 @@ namespace CombatExtendedWeaponStoragePatch
         }
     }
 
+    [HarmonyPatch(typeof(Building_TurretGunCE), "TryOrderReload")]
+    static class Patch_Building_TurretGunCE_TryOrderReload
+    {
+        static void Prefix(Building_TurretGunCE __instance)
+        {
+            if (__instance.GetType().GetField("mannableComp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance) is CompMannable mannable &&
+                __instance.CompAmmo.UseAmmo)
+            {
+                CompInventory inv = ThingCompUtility.TryGetComp<CompInventory>(mannable.ManningPawn);
+                if (mannable.ManningPawn.IsColonist && inv != null)
+                {
+                    Thing thing = inv.container.FirstOrDefault((Thing x) => x.def == __instance.CompAmmo.SelectedAmmo);
+                    if (thing == null)
+                    {
+                        AmmoDef ammoDef = __instance.CompAmmo.CurrentAmmo;
+                        if (ammoDef != null &&
+                            CombatExtendedUtil.HasAmmo(ammoDef))
+                        {
+                            int magazineSize = __instance.CompAmmo.Props.magazineSize;
+                            if (CombatExtendedUtil.TryRemoveAmmo(ammoDef, magazineSize, out Thing ammo))
+                            {
+                                inv.UpdateInventory();
+                                if (!inv.container.TryAdd(ammo as ThingWithComps))
+                                {
+                                    Log.Error("Failed to add ammo to pawn inventory");
+                                    CombatExtendedUtil.AddAmmo(ammo);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(CompAmmoUser), "TryStartReload")]
     static class Patch_CompAmmoUser_TryStartReload
     {
         static void Prefix(CompAmmoUser __instance)
         {
-            AmmoDef ammoDef = __instance.CurrentAmmo;//__instance.GetType().GetProperty("CurrentAmmo", BindingFlags.Instance | BindingFlags.Public).GetValue(__instance, null) as Def;
-            if (ammoDef != null &&
-                CombatExtendedUtil.HasAmmo(ammoDef))
+            if (__instance.turret == null && 
+                __instance.Wielder != null && 
+                __instance.HasMagazine)
             {
-                if (!__instance.HasMagazine)
-                {
-                    if (__instance.turret != null)
-                    {
-                        // TODO
-                    }
-                    else if (__instance.Wielder != null)
-                    {
-                        // TODO
-                    }
-                }
-                else
+                AmmoDef ammoDef = __instance.CurrentAmmo;//__instance.GetType().GetProperty("CurrentAmmo", BindingFlags.Instance | BindingFlags.Public).GetValue(__instance, null) as Def;
+                if (ammoDef != null &&
+                    CombatExtendedUtil.HasAmmo(ammoDef))
                 {
                     if (!__instance.TryFindAmmoInInventory(out Thing ammo))
                     {
@@ -132,7 +159,6 @@ namespace CombatExtendedWeaponStoragePatch
                 item?.def is AmmoDef && 
                 WorldComp.HasStorages())
             {
-                Log.Warning("Ammo: " + item.Label);
                 if (CombatExtendedUtil.AddAmmo(item.def, count))
                 {
                     __result = count;
@@ -184,7 +210,7 @@ namespace CombatExtendedWeaponStoragePatch
                                                 if (CombatExtendedUtil.TryRemoveAmmo(curLink.ammo, __instance.compAmmo.Props.magazineSize, out Thing ammo))
                                                 {
                                                     __instance.compAmmo.TryUnload();
-                                                    
+
                                                     __instance.compAmmo.CompInventory.UpdateInventory();
                                                     __instance.compAmmo.CompInventory.ammoList.Add(ammo as ThingWithComps);
 
@@ -204,6 +230,42 @@ namespace CombatExtendedWeaponStoragePatch
                     }
                 }
             }
+        }
+    }
+    
+    [HarmonyPatch(typeof(CompInventory), "SwitchToNextViableWeapon")]
+    static class Patch_CompInventory_SwitchToNextViableWeapon
+    {
+        static bool Prefix(CompInventory __instance, bool useFists)
+        {
+            if (__instance.parent is Pawn pawn &&
+                pawn.IsColonist &&
+                WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
+            {
+                /*ThingWithComps currentWeapon = pawn.equipment.Primary;
+                ThingWithComps melee = null;//, ranged = null;
+                foreach (var w in c.Weapons)
+                {
+                    if (w != currentWeapon)
+                    {
+                        if (w.def.IsMeleeWeapon)
+                            melee = w;
+                        //else
+                        //    ranged = w;
+                    }
+                }
+
+                if (currentWeapon.def.IsMeleeWeapon)
+                {
+                    HarmonyPatchUtil.EquipWeapon(melee, pawn, c);
+                }
+                /else
+                {
+                    // Ranged TODO
+                }*/
+                return false;
+            }
+            return true;
         }
     }
 }

@@ -47,7 +47,7 @@ namespace WeaponStorage
         }
     }
 
-    static class HarmonyPatchUtil
+    public static class HarmonyPatchUtil
     {
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
         {
