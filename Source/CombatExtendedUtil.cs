@@ -158,7 +158,8 @@ namespace WeaponStorage
 
         public static int GetAmmoCount(ThingDef def)
         {
-            if (def != null &&
+            if (HasCombatExtended &&
+                def != null &&
                 Ammo.TryGetValue(def, out int i))
             {
                 return i;

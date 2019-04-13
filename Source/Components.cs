@@ -95,6 +95,13 @@ namespace WeaponStorage
 		{
 			if (def != null)
 			{
+                if (CombatExtendedUtil.TryRemoveAmmo(def, 1, out Thing t))
+                {
+                    weapon = t as ThingWithComps;
+                    if (weapon != null)
+                        return true;
+                }
+
 				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
 				{
 					if (ws.TryRemoveWeapon(def, filter, out weapon))

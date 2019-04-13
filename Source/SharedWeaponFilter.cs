@@ -56,8 +56,13 @@ namespace WeaponStorage
 
 				this.foundDefCache.Clear();
 				foreach (ThingDef def in this.AllowedDefs)
-				{
-					foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+                {
+                    if (CombatExtendedUtil.GetAmmoCount(def) > 0)
+                    {
+                        this.foundDefCache.Add(def);
+                        continue;
+                    }
+                    foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
 					{
 						if (s.HasWeapon(this, def))
 						{
@@ -73,6 +78,11 @@ namespace WeaponStorage
         {
             if (this.AllowedDefs.Contains(def))
             {
+                if (CombatExtendedUtil.GetAmmoCount(def) > 0)
+                {
+                    this.foundDefCache.Add(def);
+                    return;
+                }
                 foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
                 {
                     if (s.HasWeapon(this, def))
