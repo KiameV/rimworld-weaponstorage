@@ -414,8 +414,7 @@ namespace WeaponStorage
         {
             if (__instance.Dead)
             {
-                AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(__instance, out c))
+                if (WorldComp.AssignedWeapons.TryGetValue(__instance, out AssignedWeaponContainer c))
                 {
                     WorldComp.AssignedWeapons.Remove(__instance);
 
@@ -423,7 +422,7 @@ namespace WeaponStorage
                     {
                         if (!WorldComp.Add(w))
                         {
-                            BuildingUtil.DropThing(w, __instance.Position, map, true);
+                            BuildingUtil.DropSingleThing(w, __instance.Position, map);
                         }
                     }
                 }

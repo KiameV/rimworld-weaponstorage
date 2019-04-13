@@ -29,7 +29,11 @@ namespace WeaponStorage.UI
             WeaponStorage_Shotguns,
             WeaponStorage_Advanced,
         };
-        private List<TabRecord> tabs = new List<TabRecord>();
+
+        private List<ThingDefCount> ammo = new List<ThingDefCount>();
+        private List<ThingDefCount> searchResults = new List<ThingDefCount>();
+
+        /*private List<TabRecord> tabs = new List<TabRecord>();
         private Tabs selectedTab = Tabs.WeaponStorage_General;
 
         private List<ThingDefCount> general = new List<ThingDefCount>();
@@ -37,7 +41,7 @@ namespace WeaponStorage.UI
         private List<ThingDefCount> grenades = new List<ThingDefCount>();
         private List<ThingDefCount> rockets = new List<ThingDefCount>();
         private List<ThingDefCount> shotguns = new List<ThingDefCount>();
-        private List<ThingDefCount> advanced = new List<ThingDefCount>();
+        private List<ThingDefCount> advanced = new List<ThingDefCount>();*/
 
         public AmmoUI(Building_WeaponStorage weaponStorage)
         {
@@ -62,7 +66,12 @@ namespace WeaponStorage.UI
 
         private void RebuildItems()
         {
-            bool hasCount = false;
+            ammo.Clear();
+            foreach (ThingDefCount tc in CombatExtendedUtil.GetThingCounts())
+            {
+                ammo.Add(tc);
+            }
+            /*bool hasCount = false;
             general.Clear();
             neolithic.Clear();
             grenades.Clear();
@@ -105,7 +114,7 @@ namespace WeaponStorage.UI
             if (!hasCount)
             {
                 this.selectedTab = Tabs.Empty;
-            }
+            }*/
         }
 
 #if TRACE
@@ -122,14 +131,15 @@ namespace WeaponStorage.UI
             {
                 float y = 0;
 
-                Widgets.Label(new Rect(0, y, 100, 30), "CE_ReloadingGenericAmmo".Translate());
+                Widgets.Label(new Rect(0, y, 100, 30), "WeaponStorage.ManageAmmo".Translate());
                 y += 32;
 
+                Widgets.Label(new Rect(0, y + 4, 70, 30), "WeaponStorage.Search".Translate());
                 string original = searchText;
-                this.searchText = Widgets.TextField(new Rect(0, 32, 100, 30), this.searchText);
+                this.searchText = Widgets.TextField(new Rect(75, y, 150, 30), this.searchText);
                 if (!this.searchText.Equals(original))
                     this.performSearch = true;
-                y += 40;
+                y += 44;
 
                 List<ThingDefCount> toShow = this.GetThingsToShow();
                 if (toShow == null || toShow.Count == 0)
@@ -141,12 +151,12 @@ namespace WeaponStorage.UI
                 }
                 else
                 {
-                    if (this.searchText.Length == 0)
+                    /*if (this.searchText.Length == 0)
                     {
                         y += 32;
                         TabDrawer.DrawTabs(new Rect(0, y, inRect.width, inRect.height - y), this.tabs);
                         y += 20;
-                    }
+                    }*/
 
                     Widgets.BeginScrollView(
                         new Rect(40, y, inRect.width - 80, inRect.height - y - 50),
@@ -194,7 +204,31 @@ namespace WeaponStorage.UI
 
         private List<ThingDefCount> GetThingsToShow()
         {
-            List<ThingDefCount> toShow = new List<ThingDefCount>();
+            if (this.performSearch)
+            {
+                this.performSearch = false;
+                this.searchResults.Clear();
+
+                if (!this.searchText.Trim().NullOrEmpty())
+                {
+                    string text = this.searchText.ToLower().Trim();
+                    foreach (ThingDefCount a in this.ammo)
+                    {
+                        if (a.ThingDef.label.ToLower().IndexOf(text) != -1 ||
+                            a.ThingDef.defName.ToLower().IndexOf(text) != -1)
+                        {
+                            this.searchResults.Add(a);
+                        }
+                    }
+                }
+            }
+
+            if (this.searchResults.Count > 0)
+                return this.searchResults;
+            if (this.searchText.Trim().NullOrEmpty())
+                return this.ammo;
+            return null;
+            /*List<ThingDefCount> toShow = new List<ThingDefCount>();
             if (this.searchText.Length > 0)
             {
                 if (this.performSearch)
@@ -215,7 +249,7 @@ namespace WeaponStorage.UI
             }
 
             if (this.searchText.Length == 0 && this.performSearch)
-                toShow?.Clear();
+                toShow.Clear();
 
             this.tabs.Clear();
             if (this.general.Count > 0)
@@ -268,10 +302,10 @@ namespace WeaponStorage.UI
                     toShow = null;
                     break;
             }
-            return toShow;
+            return toShow;*/
         }
 
-        private TabRecord CreateTabRecord(Tabs tab)
+        /*private TabRecord CreateTabRecord(Tabs tab)
         {
             return new TabRecord(
                 tab.ToString().Translate(),
@@ -283,6 +317,6 @@ namespace WeaponStorage.UI
                     }
                 },
                 this.selectedTab == tab);
-        }
+        }*/
     }
 }

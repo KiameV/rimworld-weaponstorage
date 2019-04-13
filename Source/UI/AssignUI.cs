@@ -121,7 +121,7 @@ namespace WeaponStorage.UI
             Text.Font = GameFont.Small;
             try
             {
-                Widgets.Label(new Rect(0, 0, 100, 30), "WeaponStorage.AssignTo".Translate());
+                Widgets.Label(new Rect(0, 4, 100, 30), "WeaponStorage.AssignTo".Translate());
                 string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "Pawn";
                 if (Widgets.ButtonText(new Rect(120, 0, 200, 30), label))
                 {
@@ -149,7 +149,8 @@ namespace WeaponStorage.UI
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
 
-                this.textBuffer = Widgets.TextField(new Rect(350, 0, 100, 30), this.textBuffer);
+                Widgets.Label(new Rect(350, 4, 70, 30), "WeaponStorage.Search".Translate());
+                this.textBuffer = Widgets.TextField(new Rect(425, 0, 100, 30), this.textBuffer);
 
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
@@ -185,7 +186,7 @@ namespace WeaponStorage.UI
                                         if (!this.weaponStorage.AddWeapon(weapon) &&
                                             !WorldComp.Add(weapon))
                                         {
-                                            BuildingUtil.DropThing(weapon, this.assignedWeapons.Pawn.Position, this.assignedWeapons.Pawn.Map, false);
+                                            BuildingUtil.DropSingleThing(weapon, this.assignedWeapons.Pawn.Position, this.assignedWeapons.Pawn.Map);
                                         }
                                     }
                                     else

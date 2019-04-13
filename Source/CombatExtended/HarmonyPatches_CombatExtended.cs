@@ -5,16 +5,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 using Verse;
+using Verse.AI;
 using WeaponStorage;
 
 namespace CombatExtendedWeaponStoragePatch
 {
     [StaticConstructorOnStartup]
-    class HarmonyPatches_CombatExtended
+    public class HarmonyPatches_CombatExtended
     {
         public static Assembly CombatExtendedAssembly { get; private set; }
-        public static Type AmmoDef { get; private set; }
+        //public static Type AmmoDef { get; private set; }
 
         static HarmonyPatches_CombatExtended()
         {
@@ -52,9 +54,9 @@ namespace CombatExtendedWeaponStoragePatch
                         {
                             if (assembly.GetName().Name.Equals("CombatExtended"))
                             {
-                                AmmoDef = assembly.GetType("CombatExtended.AmmoDef");
+                                /*AmmoDef = assembly.GetType("CombatExtended.AmmoDef");
                                 if (AmmoDef == null)
-                                    throw new Exception("Unable to find CombatExtended.AmmoDef");
+                                    throw new Exception("Unable to find CombatExtended.AmmoDef");*/
 
                                 /*compAmmoUser = assembly.GetType("CombatExtended.CompAmmoUser");
                                 if (compAmmoUser == null)
@@ -100,7 +102,7 @@ namespace CombatExtendedWeaponStoragePatch
                     Thing thing = inv.container.FirstOrDefault((Thing x) => x.def == __instance.CompAmmo.SelectedAmmo);
                     if (thing == null)
                     {
-                        AmmoDef ammoDef = __instance.CompAmmo.CurrentAmmo;
+                        AmmoDef ammoDef = __instance.CompAmmo.SelectedAmmo;
                         if (ammoDef != null &&
                             CombatExtendedUtil.HasAmmo(ammoDef))
                         {
@@ -126,11 +128,11 @@ namespace CombatExtendedWeaponStoragePatch
     {
         static void Prefix(CompAmmoUser __instance)
         {
-            if (__instance.turret == null && 
-                __instance.Wielder != null && 
+            if (__instance.turret == null &&
+                __instance.Wielder != null &&
                 __instance.HasMagazine)
             {
-                AmmoDef ammoDef = __instance.CurrentAmmo;//__instance.GetType().GetProperty("CurrentAmmo", BindingFlags.Instance | BindingFlags.Public).GetValue(__instance, null) as Def;
+                AmmoDef ammoDef = __instance.SelectedAmmo;//__instance.GetType().GetProperty("CurrentAmmo", BindingFlags.Instance | BindingFlags.Public).GetValue(__instance, null) as Def;
                 if (ammoDef != null &&
                     CombatExtendedUtil.HasAmmo(ammoDef))
                 {
@@ -147,6 +149,243 @@ namespace CombatExtendedWeaponStoragePatch
         }
     }
 
+    class StoredAmmo : Thing
+    {
+        public readonly Building root;
+        public readonly ThingDef ammoDef;
+        public readonly int ammoCount;
+        public readonly bool forced;
+        public StoredAmmo(Building root, ThingDef ammoDef, int ammoCount, bool forced)
+        {
+            this.root = root;
+            this.ammoDef = ammoDef;
+            this.ammoCount = ammoCount;
+            this.forced = forced;
+        }
+    }
+
+    [HarmonyPatch(typeof(WorkGiver_ReloadTurret), "HasJobOnThing")]
+    static class Patch_WorkGiver_ReloadTurret_HasJobOnThing
+    {
+        public static Building WS = null;
+
+        // used to manually re-arm turrets
+        static void Postfix(WorkGiver_ReloadTurret __instance, ref bool __result, Pawn pawn, Thing t, bool forced)
+        {
+            Building_TurretGunCE turret = t as Building_TurretGunCE;
+            if (__result == false && turret != null && !turret.def.hasInteractionCell)
+            {
+                if (WorldComp.HasStorages(turret.Map) &&
+                    CombatExtendedUtil.HasAmmo(turret.CompAmmo.SelectedAmmo))
+                {
+                    WS = GenClosest.ClosestThingReachable(turret.Position, turret.Map, ThingRequest.ForDef(WorldComp.WeaponStorageDef), Verse.AI.PathEndMode.ClosestTouch, TraverseParms.For(pawn, pawn.NormalMaxDanger(), TraverseMode.ByPawn, false), 100) as Building;
+                    __result = WS != null;
+                }
+            }
+        }
+
+        /*[HarmonyPatch(typeof(JobGiver_Work), "GiverTryGiveJobPrioritized")]
+        static class Patch_JobGiver_Work_GiverTryGiveJobPrioritized
+        {
+            static void Postfix(WorkGiver_ReloadTurret __instance, ref Job __result, Pawn pawn, WorkGiver giver, IntVec3 cell)
+            {
+                //if (__result)
+            }
+        }*/
+    }
+
+    [HarmonyPatch(typeof(WorkGiver_ReloadTurret), "JobOnThing")]
+    static class Patch_WorkGiver_ReloadTurret_JobOnThing
+    {
+        static bool Prefix(WorkGiver_ReloadTurret __instance, ref Job __result, Pawn pawn, Thing t, bool forced)
+        {
+            if (Patch_WorkGiver_ReloadTurret_HasJobOnThing.WS != null)
+            {
+                Building_TurretGunCE turret = t as Building_TurretGunCE;
+                __result = new Job(
+                    DefDatabase<JobDef>.GetNamed("ReloadTurret", true),
+                    t,
+                    new StoredAmmo(
+                        Patch_WorkGiver_ReloadTurret_HasJobOnThing.WS,
+                        turret.CompAmmo.SelectedAmmo,
+                        turret.CompAmmo.Props.magazineSize,
+                        forced));
+                Patch_WorkGiver_ReloadTurret_HasJobOnThing.WS = null;
+                return false;
+            }
+            return true;
+        }
+
+        // Used to automatically re-arm turrets
+        static void Postfix(WorkGiver_ReloadTurret __instance, ref Job __result, Pawn pawn, Thing t, bool forced)
+        {
+            if (__result == null)
+            {
+                if (t is Building_TurretGunCE turret)
+                {
+                    if (WorldComp.HasStorages(turret.Map) &&
+                        CombatExtendedUtil.HasAmmo(turret.CompAmmo.SelectedAmmo))
+                    {
+                        var storage = GenClosest.ClosestThingReachable(
+                            turret.Position, turret.Map, ThingRequest.ForDef(WorldComp.WeaponStorageDef), Verse.AI.PathEndMode.ClosestTouch, TraverseParms.For(pawn, pawn.NormalMaxDanger(), TraverseMode.ByPawn, false), 100);
+                        if (storage != null)
+                        {
+                            // TODO - Add setting where ammo should be dropped
+                            //CombatExtendedUtil.TryDropAmmo(turret.CompAmmo.SelectedAmmo, turret.CompAmmo.Props.magazineSize, storage.Position, storage.Map);
+                            
+                            __result = new Job(
+                                DefDatabase<JobDef>.GetNamed("ReloadTurret", true),
+                                t,
+                                new StoredAmmo(
+                                    Patch_WorkGiver_ReloadTurret_HasJobOnThing.WS,
+                                    turret.CompAmmo.SelectedAmmo,
+                                    turret.CompAmmo.Props.magazineSize,
+                                    forced));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_JobTracker), "StartJob")]
+    static class Patch_Pawn_JobTracker_StartJob
+    {
+        static void Prefix(Pawn_JobTracker __instance, Job newJob, JobCondition lastJobEndCondition, ThinkNode jobGiver, bool resumeCurJobAfterwards, bool cancelBusyStances, ThinkTreeDef thinkTree, JobTag? tag, bool fromQueue)
+        {
+            if (newJob != null && newJob.targetB.Thing is StoredAmmo sa)
+            {
+                Pawn pawn = __instance.GetType().GetField("pawn", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance) as Pawn;
+                
+                Building_TurretGunCE turret = newJob.targetA.Thing as Building_TurretGunCE;
+                
+                FieldInfo fi = sa.root.GetType().GetField("AllowAdds", BindingFlags.Instance | BindingFlags.Public);
+
+                try
+                {
+                    fi.SetValue(sa.root, false);
+                    IntVec3 pos;
+                    Building building = sa.root as Building;
+                    if (sa.forced || sa.root == null)
+                        pos = pawn.Position;
+                    else
+                        pos = building.InteractionCell;
+                    
+                    if (!CombatExtendedUtil.TryDropAmmo(sa.ammoDef, sa.ammoCount, pos, sa.root.Map, out Thing t))
+                    {
+                        Log.Error("Could not get ammo");
+                    }
+                    else
+                    {
+                        newJob.targetB = t;
+                        newJob.count = t.stackCount;
+                    }
+                }
+                finally
+                {
+                    fi.SetValue(sa.root, true);
+                }
+            }
+        }
+    }
+    /*[HarmonyPatch(typeof(JobDriver_ReloadTurret), "MakeNewToils")]
+    static class Patch_JobDriver_ReloadTurret_MakeNewToils
+    {
+        static void Prefix(JobDriver_ReloadTurret __instance)
+        {
+            if (__instance.job.targetB.Thing is StoredAmmo sa)
+            {
+                Log.Warning("MakeNewToils");
+                Building_TurretGunCE turret = __instance.GetType().GetProperty("turret", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance, null) as Building_TurretGunCE;
+                CompAmmoUser compReloader = __instance.GetType().GetProperty("compReloader", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance, null) as CompAmmoUser;
+                Pawn pawn = __instance.pawn;
+
+                FieldInfo fi = sa.root.GetType().GetField("AllowAdds", BindingFlags.Instance | BindingFlags.Public);
+
+                try
+                {
+                    fi.SetValue(sa.root, false);
+                    IntVec3 pos;
+                    Building building = sa.root as Building;
+                    if (sa.forced || sa.root == null)
+                        pos = pawn.Position;
+                    else
+                        pos = building.InteractionCell;
+
+                    if (!CombatExtendedUtil.TryDropAmmo(sa.ammoDef, sa.ammoCount, pos, sa.root.Map, out Thing t))
+                    {
+                        Log.Error("Could not get ammo");
+                    }
+                    else
+                    {
+                        __instance.GetType().GetProperty("TargetThingB", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(__instance, t, null);
+                        __instance.job.count = t.stackCount;
+                    }
+                }
+                finally
+                {
+                    fi.SetValue(sa.root, true);
+                }
+            }
+        }
+    }*/
+
+    /*[HarmonyPatch(typeof(JobDriver_ReloadTurret), "TryMakePreToilReservations")]
+    static class Patch_JobDriver_ReloadTurret_TryMakePreToilReservations
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(JobDriver_ReloadTurret __instance, ref bool __result, bool errorOnFailed)
+        {
+            if (__instance.job.targetB.Thing is StoredAmmo sa)
+            {
+                FieldInfo fi = sa.root.GetType().GetField("AllowAdds", BindingFlags.Instance | BindingFlags.Public);
+                IntVec3 position = (IntVec3)sa.root.GetType().GetProperty("InteractionCell", BindingFlags.Instance | BindingFlags.Public).GetValue(sa.root, null);
+                try
+                {
+                    fi.SetValue(sa.root, false);
+                    if (CombatExtendedUtil.TryDropAmmo(sa.ammoDef, sa.ammoCount, position, sa.root.Map, out Thing ammo))
+                    {
+                        Log.Warning("ammo is not null " + (ammo != null).ToString());
+                        __instance.job.targetB = ammo;
+                        Log.Warning("targetB is not null " + (__instance.job.targetB != null).ToString());
+                        Log.Warning("targetB is type " + __instance.job.targetB.Thing.GetType().Name);
+                    }
+                }
+                finally
+                {
+                    fi.SetValue(sa.root, true);
+                }
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_JobTracker), "StartJob")]
+    static class Patch_Pawn_JobTracker_StartJob
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Job newJob, JobCondition lastJobEndCondition, ThinkNode jobGiver, bool resumeCurJobAfterwards, bool cancelBusyStances, ThinkTreeDef thinkTree, JobTag? tag, bool fromQueue)
+        {
+            if (newJob.targetB.Thing is StoredAmmo sa)
+            {
+                //Log.Message("def: " + sa.ammoDef + " x" + sa.ammoCount + " (" + sa.Position.x + ", " + sa.Position.y + ", " + sa.Position.z + ") Map not null: " + (sa.MapToUse != null).ToString());
+                FieldInfo fi = sa.root.GetType().GetField("AllowAdds", BindingFlags.Instance | BindingFlags.Public);
+                IntVec3 position = (IntVec3)sa.root.GetType().GetProperty("InteractionCell", BindingFlags.Instance | BindingFlags.Public).GetValue(sa.root, null);
+                try
+                {
+                    fi.SetValue(sa.root, false);
+                    if (CombatExtendedUtil.TryDropAmmo(sa.ammoDef, sa.ammoCount, position, sa.root.Map, out Thing ammo))
+                    {
+                        newJob.targetB = ammo;
+                    }
+                }
+                finally
+                {
+                    fi.SetValue(sa.root, true);
+                }
+            }
+        }
+    }*/
+
     [HarmonyPatch(typeof(ThingOwner<Thing>))]
     [HarmonyPatch(MethodType.Normal)]
     [HarmonyPatch("TryAdd", new Type[] { typeof(Thing), typeof(int), typeof(bool) })]
@@ -156,7 +395,7 @@ namespace CombatExtendedWeaponStoragePatch
         {
             var inv = __instance.Owner as Pawn_InventoryTracker;
             if (inv?.pawn.IsColonist == true &&
-                item?.def is AmmoDef && 
+                item?.def is AmmoDef &&
                 WorldComp.HasStorages())
             {
                 if (CombatExtendedUtil.AddAmmo(item.def, count))
@@ -210,9 +449,13 @@ namespace CombatExtendedWeaponStoragePatch
                                                 if (CombatExtendedUtil.TryRemoveAmmo(curLink.ammo, __instance.compAmmo.Props.magazineSize, out Thing ammo))
                                                 {
                                                     __instance.compAmmo.TryUnload();
-
+                                                    
+                                                    if (!__instance.compAmmo.CompInventory.container.TryAdd(ammo as ThingWithComps))
+                                                    {
+                                                        Log.Error("Failed to reload ammo");
+                                                        CombatExtendedUtil.AddAmmo(ammo);
+                                                    }
                                                     __instance.compAmmo.CompInventory.UpdateInventory();
-                                                    __instance.compAmmo.CompInventory.ammoList.Add(ammo as ThingWithComps);
 
                                                     if (turret != null)
                                                     {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Verse;
 using System;
+using System.Linq;
 
 namespace WeaponStorage
 {
@@ -20,6 +21,22 @@ namespace WeaponStorage
         {
             HasCombatExtended = enabled;
         }
+        static CombatExtendedUtil()
+        {
+            HasCombatExtended = false;
+            bool hasWSCEPatch = false;
+            foreach (var m in ModsConfig.ActiveModsInLoadOrder)
+            {
+                if (m.Name.Equals("Combat Extended"))
+                    HasCombatExtended = true;
+                if (m.Name.StartsWith("[KV] Weapon Storage Combat Extended Patch"))
+                    hasWSCEPatch = true;
+            }
+            if (HasCombatExtended && !hasWSCEPatch)
+            {
+                Log.Error("WeaponStorage.UseWSCEPatch".Translate());
+            }
+        }
 
         // Key: Ammo Def
         // Value: Ammo Count
@@ -27,20 +44,16 @@ namespace WeaponStorage
 
         public static bool AddAmmo(ThingDef def, int count)
         {
-            if (IsAmmo(def))
+            if (Ammo.TryGetValue(def, out int i))
             {
-                if (Ammo.TryGetValue(def, out int i))
-                {
-                    i += count;
-                }
-                else
-                {
-                    i = count;
-                }
-                Ammo[def] = i;
-                return true;
+                i += count;
             }
-            return false;
+            else
+            {
+                i = count;
+            }
+            Ammo[def] = i;
+            return true;
         }
 
         public static bool AddAmmo(Thing ammo)
@@ -64,22 +77,61 @@ namespace WeaponStorage
             return false;
         }
 
-        public static void DropAmmo(ThingDef def, Building_WeaponStorage ws)
+        internal static void DropAmmo(ThingDef def, Building_WeaponStorage ws)
         {
             DropAllNoUpate(def, GetAmmoCount(def), ws);
             Ammo[def] = 0;
         }
 
-        public static bool TryRemoveAmmo(ThingDef def, int count, out Thing ammo)
+        public static bool TryDropAmmo(ThingDef def, int count, IntVec3 position, Map map)
         {
-            if (def != null &&
-                Ammo.TryGetValue(def, out int i))
+            return TryDropAmmo(def, count, position, map, out Thing t);
+        }
+
+        public static bool TryDropAmmo(ThingDef def, int count, IntVec3 position, Map map, out Thing droppedAmmo)
+        {
+            //Log.Warning("Util Drop: " + def.defName + " x" + count);
+            if (count > 0 &&
+                def != null &&
+                Ammo.TryGetValue(def, out int i) &&
+                i > 0)
             {
                 if (i < count)
                     count = i;
+
+                i -= count;
+
+                //Log.Message("    Dropping Count: " + count);
+                droppedAmmo = MakeAmmo(def, count);
+                if (BuildingUtil.DropThing(droppedAmmo, position, map))
+                {
+                    //Log.Message("    Remaining Count: " + i);
+                    Ammo[def] = i;
+                    return true;
+                }
+                else
+                {
+                    Log.Error("Failed to drop " + def.defName + " x" + count);
+                }
+            }
+            droppedAmmo = null;
+            return false;
+        }
+
+        public static bool TryRemoveAmmo(ThingDef def, int count, out Thing ammo)
+        {
+            if (count > 0 && 
+                def != null &&
+                Ammo.TryGetValue(def, out int i) && 
+                i > 0)
+            {
+                if (i < count)
+                    count = i;
+
                 i -= count;
                 Ammo[def] = i;
 
+                //Log.Warning("Remove " + def.defName + " x" + count);
                 ammo = MakeAmmo(def, count);
                 return true;
             }
@@ -90,12 +142,6 @@ namespace WeaponStorage
         public static bool HasAmmo(ThingDef def)
         {
             return GetAmmoCount(def) > 0;
-        }
-
-        public static bool IsAmmo(ThingDef def)
-        {
-            // TODO
-            return HasCombatExtended;
         }
 
         public static bool IsAmmo(Thing ammo)
@@ -136,7 +182,7 @@ namespace WeaponStorage
                 int toDrop = Math.Max(def.stackLimit, 1);
                 if (toDrop > count)
                     toDrop = count;
-                BuildingUtil.DropThing(MakeAmmo(def, toDrop), ws, ws.Map, false);
+                BuildingUtil.DropThing(MakeAmmo(def, toDrop), ws, ws.Map);
                 count -= toDrop;
             }
         }
@@ -145,6 +191,8 @@ namespace WeaponStorage
         {
             Thing t = ThingMaker.MakeThing(def);
             t.stackCount = count;
+            if (t.stackCount == 0)
+                Log.Error(t.Label + " has stack count of 0");
             return t;
         }
 

@@ -213,7 +213,7 @@ namespace WeaponStorage
                             if (count <= 0)
                                 break;
 
-                            if (sa.Storage.Remove(sa.Weapon, false))
+                            if (sa.Storage.Remove(sa.Weapon))
                             {
                                 count -= sa.Weapon.stackCount;
                                 chosen.Add(new ThingCount(sa.Weapon, sa.Weapon.stackCount));

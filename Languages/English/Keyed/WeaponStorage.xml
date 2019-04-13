@@ -39,4 +39,10 @@
 	<WeaponStorage.Edit>Edit</WeaponStorage.Edit>
 	<WeaponStorage.SharedWeaponsFilter>Filter</WeaponStorage.SharedWeaponsFilter>
 	
+	<WeaponStorage.Search>Search</WeaponStorage.Search>
+	
+	<!-- Combat Extended -->
+	<WeaponStorage.ManageAmmo>Manage Ammo</WeaponStorage.ManageAmmo>
+	<WeaponStorage.ManageAmmoDesc>Manage Combat Extended Ammo</WeaponStorage.ManageAmmoDesc>
+	<WeaponStorage.UseWSCEPatch>You have mod [Combat Extended] and [Weapon Storage]. Please also use [Weapon Storage Combat Extended Patch]</WeaponStorage.UseWSCEPatch>
 </LanguageData>

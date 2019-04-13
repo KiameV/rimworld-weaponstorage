@@ -69,7 +69,7 @@ namespace MendingWeaponStoragePatch
 									if (bill.ingredientFilter.Allows(t) &&
 										t.HitPoints != t.MaxHitPoints)
 									{
-										ws.Remove(t, false);
+										ws.Remove(t);
 										if (t.Spawned == false)
 										{
 											Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");

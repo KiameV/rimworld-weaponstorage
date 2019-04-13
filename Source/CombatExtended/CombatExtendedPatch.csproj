@@ -26,7 +26,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>D:\Steam\steamapps\common\RimWorld\Mods\WeaponStorage\Assemblies\</OutputPath>
+    <OutputPath>D:\Steam\steamapps\common\RimWorld\Mods\WeaponStorageCombatExtended\Assemblies\</OutputPath>
     <DefineConstants>
     </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -40,8 +40,9 @@
       <HintPath>D:\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="CombatExtended">
+    <Reference Include="CombatExtended, Version=0.18.1.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>D:\Steam\steamapps\workshop\content\294100\1631756268\Assemblies\CombatExtended.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -58,6 +59,7 @@
     <ProjectReference Include="..\WeaponStorage.csproj">
       <Project>{0fe64e9a-217a-4cee-8c5e-ce6cacb933ec}</Project>
       <Name>WeaponStorage</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -65,7 +67,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>xcopy "$(ProjectDir)..\..\CEPatchAbout\About.xml" "$(OutDir)..\About\" /Y /I
+xcopy "$(ProjectDir)..\..\CEPatchAbout\Preview.png" "$(OutDir)..\About\" /Y /I
+
+xcopy "$(ProjectDir)..\..\CEPatchAbout\ModSync.xml" "$(OutDir)..\About\" /Y /I
+xcopy "$(ProjectDir)..\..\CEPatchAbout\PublishedFileId.txt" "$(OutDir)..\About\" /Y /I
+
+</PostBuildEvent>
   </PropertyGroup>
 </Project>

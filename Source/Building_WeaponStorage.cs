@@ -14,7 +14,7 @@ namespace WeaponStorage
 
         private Map CurrentMap { get; set; }
 
-        public bool AllowAdds { get; set; }
+        public bool AllowAdds = true;
 
         private bool includeInTradeDeals = true;
         public bool IncludeInTradeDeals { get { return this.includeInTradeDeals; } }
@@ -103,7 +103,7 @@ namespace WeaponStorage
 					foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
 						foreach (ThingWithComps t in l)
 						{
-							this.DropThing(t, false);
+							this.DropThing(t);
 						}
                     this.StoredWeapons.Clear();
                 }
@@ -148,12 +148,12 @@ namespace WeaponStorage
             }
         }
 
-        private bool DropThing(Thing t, bool makeForbidden = true)
+        private bool DropThing(Thing t)
         {
-            return BuildingUtil.DropThing(t, this, this.CurrentMap, makeForbidden);
+            return BuildingUtil.DropThing(t, this, this.CurrentMap);
         }
 
-        private void DropWeapons<T>(IEnumerable<T> things, bool makeForbidden = true) where T : Thing
+        private void DropWeapons<T>(IEnumerable<T> things) where T : Thing
         {
             try
             {
@@ -161,7 +161,7 @@ namespace WeaponStorage
                 {
                     foreach (T t in things)
                     {
-                        this.DropThing(t, makeForbidden);
+                        this.DropThing(t);
                     }
                 }
             }
@@ -180,7 +180,7 @@ namespace WeaponStorage
             {
                 this.AllowAdds = false;
 				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
-					this.DropWeapons(l, false);
+					this.DropWeapons(l);
                 CombatExtendedUtil.EmptyAmmo(this);
                 this.StoredWeapons.Clear();
             }
@@ -513,7 +513,7 @@ namespace WeaponStorage
 		/// <summary>
 		/// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
 		/// </summary>
-		public bool Remove(ThingWithComps weapon, bool forbidden = true)
+		public bool Remove(ThingWithComps weapon)
         {
             try
             {
@@ -521,7 +521,7 @@ namespace WeaponStorage
 				weapons.Remove(weapon);
 
 				if (weapon.Spawned ||
-					this.DropThing(weapon, forbidden))
+					this.DropThing(weapon))
 				{
 					return true;
 				}
@@ -580,7 +580,7 @@ namespace WeaponStorage
 					{
 						if (!WorldComp.Add(t))
 						{
-							this.DropThing(t, false);
+							this.DropThing(t);
 						}
 					}
 				}
@@ -589,7 +589,7 @@ namespace WeaponStorage
 			if (this.forceAddedWeapons != null && this.forceAddedWeapons.Count > 0)
 			{
 				foreach (Thing t in this.forceAddedWeapons)
-					this.DropThing(t, false);
+					this.DropThing(t);
 				this.forceAddedWeapons.Clear();
 				this.forceAddedWeapons = null;
 			}
@@ -629,16 +629,19 @@ namespace WeaponStorage
 			});
 			++groupKey;
 
-            l.Add(new Command_Action()
+            if (CombatExtendedUtil.HasCombatExtended)
             {
-                icon = UI.AssignUI.ammoTexture,
-                defaultDesc = "WeaponStorage.ManageAmmoDesc".Translate(),
-                defaultLabel = "WeaponStorage.ManageAmmo".Translate(),
-                activateSound = SoundDef.Named("Click"),
-                action = delegate { Find.WindowStack.Add(new UI.AmmoUI(this)); },
-                groupKey = groupKey,
-            });
-            ++groupKey;
+                l.Add(new Command_Action()
+                {
+                    icon = UI.AssignUI.ammoTexture,
+                    defaultDesc = "WeaponStorage.ManageAmmoDesc".Translate(),
+                    defaultLabel = "WeaponStorage.ManageAmmo".Translate(),
+                    activateSound = SoundDef.Named("Click"),
+                    action = delegate { Find.WindowStack.Add(new UI.AmmoUI(this)); },
+                    groupKey = groupKey,
+                });
+                ++groupKey;
+            }
 
             l.Add(new Command_Action()
             {

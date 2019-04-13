@@ -12,11 +12,13 @@ namespace WeaponStorage
 
 		public static List<SharedWeaponFilter> SharedWeaponFilter = new List<SharedWeaponFilter>();
 
-		private static bool defInitialized = false;
+		public static ThingDef WeaponStorageDef { get; private set; }
+
+        static WorldComp() { WeaponStorageDef = null; }
 
         public WorldComp(World world) : base(world)
         {
-            if (!defInitialized)
+            if (WeaponStorageDef == null)
             {
                 ThingDef d = null;
                 List<ThingDef> weapons = new List<ThingDef>();
@@ -25,6 +27,7 @@ namespace WeaponStorage
                     if (def.defName.Equals("WeaponStorage"))
                     {
                         d = def;
+                        WeaponStorageDef = def;
                     }
                     else if (def.IsWeapon)
                     {
@@ -46,7 +49,9 @@ namespace WeaponStorage
                 }
                 d.building.fixedStorageSettings.filter.RecalculateDisplayRootCategory();
                 d.building.defaultStorageSettings.filter.RecalculateDisplayRootCategory();
-                defInitialized = true;
+
+                if (WeaponStorageDef == null)
+                    Log.Error("Unabled to find WeaponStorageDef");
             }
 
             foreach (AssignedWeaponContainer c in AssignedWeapons.Values)
@@ -104,7 +109,7 @@ namespace WeaponStorage
         public static bool Drop(ThingWithComps w)
         {
 			foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
-				if (BuildingUtil.DropThing(w, ws, ws.Map, false))
+				if (BuildingUtil.DropThing(w, ws, ws.Map))
 				{
 					return true;
 				}
