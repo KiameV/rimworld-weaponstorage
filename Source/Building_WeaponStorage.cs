@@ -395,7 +395,6 @@ namespace WeaponStorage
             {
                 foreach (ThingWithComps t in l)
                 {
-                    Log.Warning("Found: " + t.Label);
 					if (!this.AddWeapon(t) && 
 						force &&
 						t.Spawned && 

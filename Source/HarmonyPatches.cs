@@ -75,12 +75,12 @@ namespace WeaponStorage
                     }
                     Log.Warning("Failed to replace " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "] with [" + weapon.Label + "].");
                     return;
-				}
-				if (c == null)
-				{
-					WorldComp.Add(primary);
-				}
-				else if (!c.Weapons.Contains(primary))
+                }
+                if (c == null)
+                {
+                    WorldComp.Add(primary);
+                }
+                else if (!c.Weapons.Contains(primary))
                 {
                     c.Weapons.Add(primary);
                 }
@@ -121,14 +121,14 @@ namespace WeaponStorage
         static void Postfix(Pawn_DraftController __instance)
         {
             Pawn pawn = __instance.pawn;
-			if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer weapons))
-			{
-				if (weapons.TryGetLastThingUsed(pawn, out ThingWithComps w))
-				{
-					HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
-				}
-			}
-		}
+            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer weapons))
+            {
+                if (weapons.TryGetLastThingUsed(pawn, out ThingWithComps w))
+                {
+                    HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
+                }
+            }
+        }
     }
 
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
@@ -184,15 +184,15 @@ namespace WeaponStorage
                 pawn.Faction == Faction.OfPlayer &&
                 pawn.def.race.Humanlike)
             {
-				if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c) &&
-					pawn.equipment.Primary == null)
-				{
-					if (c.TryGetLastThingUsed(pawn, out ThingWithComps w))
-					{
-						HarmonyPatchUtil.EquipWeapon(w, pawn, c);
-					}
-				}
-			}
+                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c) &&
+                    pawn.equipment.Primary == null)
+                {
+                    if (c.TryGetLastThingUsed(pawn, out ThingWithComps w))
+                    {
+                        HarmonyPatchUtil.EquipWeapon(w, pawn, c);
+                    }
+                }
+            }
         }
     }
 
@@ -444,7 +444,7 @@ namespace WeaponStorage
             {
                 __instance.Remove(__instance.Primary);
             }
-            
+
 
             /*ThingWithComps primary = __instance.Primary;
             if (primary != null)
@@ -527,7 +527,7 @@ namespace WeaponStorage
             if (eq.def.equipmentType == EquipmentType.Primary && __instance.Primary != null)
             {
                 AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out c) && 
+                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out c) &&
                     c.Weapons.Contains(eq))
                 {
                     __instance.Remove(eq);
@@ -536,31 +536,31 @@ namespace WeaponStorage
         }
     }
 
-	[HarmonyPatch(typeof(ScribeSaver), "InitSaving")]
-	static class Patch_ScribeSaver_InitSaving
-	{
-		static void Prefix()
-		{
-			try
-			{
-				foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
-				{
-					try
-					{
-						s.ReclaimWeapons(true);
-					}
-					catch (Exception e)
-					{
-						Log.Warning("Error while reclaiming weapon for storage\n" + e.Message);
-					}
-				}
-			}
-			catch (Exception e)
-			{
-				Log.Warning("Error while reclaiming weapons\n" + e.Message);
-			}
-		}
-	}
+    [HarmonyPatch(typeof(ScribeSaver), "InitSaving")]
+    static class Patch_ScribeSaver_InitSaving
+    {
+        static void Prefix()
+        {
+            try
+            {
+                foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
+                {
+                    try
+                    {
+                        s.ReclaimWeapons(true);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warning("Error while reclaiming weapon for storage\n" + e.Message);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Warning("Error while reclaiming weapons\n" + e.Message);
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(SettlementAbandonUtility), "Abandon")]
     static class Patch_SettlementAbandonUtility_Abandon
@@ -569,6 +569,105 @@ namespace WeaponStorage
         static void Prefix(MapParent settlement)
         {
             WorldComp.Remove(settlement.Map);
+        }
+    }
+
+    [HarmonyPatch(typeof(Pawn_MeleeVerbs), "TryMeleeAttack")]
+    static class Patch_Pawn_MeleeVerbs_TryMeleeAttack
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Postfix(Pawn_MeleeVerbs __instance, Thing target)
+        {
+            if (Settings.AutoSwitchMelee == false)
+                return;
+
+            Pawn pawn = __instance.Pawn;
+            if (pawn != null &&
+                WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
+            {
+                Verb attackVerb = pawn.TryGetAttackVerb(target, !pawn.IsColonist);
+                if (attackVerb != null && attackVerb.verbProps.IsMeleeAttack)
+                {
+                    float blunt = target.GetStatValue(StatDefOf.ArmorRating_Blunt);
+                    float sharp = target.GetStatValue(StatDefOf.ArmorRating_Sharp);
+                    DamageType dt = (blunt > sharp) ? DamageType.Sharp : DamageType.Blunt;
+                    if (blunt == sharp)
+                    {
+                        if (Settings.PreferredDamageType == PreferredDamageTypeEnum.WeaponStorage_None)
+                            return;
+
+                        dt = (Settings.PreferredDamageType == PreferredDamageTypeEnum.ArmorBlunt) ? DamageType.Blunt : DamageType.Sharp;
+                    }
+
+                    if (TryGetBestWeapon(dt, pawn.equipment.Primary, c, out ThingWithComps bestWeapon))
+                    {
+                        HarmonyPatchUtil.EquipWeapon(bestWeapon, pawn, c);
+                    }
+                }
+            }
+        }
+
+        private enum DamageType { Sharp, Blunt }
+        static Dictionary<Def, DT> weaponDamageTypes = new Dictionary<Def, DT>();
+        private struct DT
+        {
+            public DamageType DamageType;
+            public float Power;
+            public DT(DamageType dt, float p) { this.DamageType = dt; this.Power = p; }
+        }
+        private static bool TryGetBestWeapon(DamageType dt, Thing equiped, AssignedWeaponContainer c, out ThingWithComps bestWeapon)
+        {
+            bestWeapon = null;
+            DT toUse;
+            if (equiped != null)
+                toUse = GetWeaponDamage(equiped.def);
+            else
+                toUse = new DT(DamageType.Blunt, -1f);
+
+            if (toUse.DamageType != dt || toUse.Power == -1f)
+            {
+                toUse.Power = -1f;
+                foreach (var w in c.Weapons)
+                {
+                    if (w.def.IsMeleeWeapon)
+                    {
+                        var p = GetWeaponDamage(w.def);
+                        if (p.DamageType == dt && 
+                            p.Power > toUse.Power)
+                        {
+                            toUse.Power = p.Power;
+                            bestWeapon = w;
+                        }
+                    }
+                }
+                return toUse.Power > 0f;
+            }
+            return false;
+        }
+
+        private static DT GetWeaponDamage(ThingDef def)
+        {
+            if (!weaponDamageTypes.TryGetValue(def, out DT dt))
+            {
+                dt = new DT(DamageType.Blunt, -1f);
+                foreach (var t in def.tools)
+                {
+                    if (t.power > dt.Power)
+                    {
+                        dt.Power = t.power;
+                        foreach (var v in t.VerbsProperties)
+                        {
+                            if (v.meleeDamageDef == DamageDefOf.Blunt)
+                                dt.DamageType = DamageType.Blunt;
+                            else
+                                dt.DamageType = DamageType.Sharp;
+                            break;
+                        }
+                    }
+                }
+                weaponDamageTypes.Add(def, dt);
+            }
+            return dt;
         }
     }
 }

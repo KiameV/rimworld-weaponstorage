@@ -31,15 +31,26 @@ namespace WeaponStorage
         }
     }
 
+    public enum PreferredDamageTypeEnum
+    {
+        WeaponStorage_None,
+        ArmorBlunt,
+        ArmorSharp,
+    }
+
     public class Settings : ModSettings
     {
+        private const float FIRST_COLUMN_WIDTH = 250f;
+        private const float SECOND_COLUMN_X = FIRST_COLUMN_WIDTH + 10f;
         private const int DEFAULT_REPAIR_SPEED = 1;
         private const float DEFAULT_REPAIR_UPDATE_INTERVAL = 5f;
 
         //private static ToolDefsLookup ToolDefs = new ToolDefsLookup();
 
         public static bool ShowWeaponsWhenNotDrafted = false;
+        public static bool AutoSwitchMelee = true;
         public static int RepairAttachmentDistance = 6;
+        public static PreferredDamageTypeEnum PreferredDamageType = PreferredDamageTypeEnum.ArmorSharp;
         public static int RepairAttachmentMendingSpeed = DEFAULT_REPAIR_SPEED;
         private static string RepairAttachmentMendingSpeedBuffer = DEFAULT_REPAIR_SPEED.ToString();
         public static float RepairAttachmentUpdateInterval = DEFAULT_REPAIR_UPDATE_INTERVAL;
@@ -57,28 +68,60 @@ namespace WeaponStorage
             RepairAttachmentMendingSpeedBuffer = RepairAttachmentMendingSpeed.ToString();
             Scribe_Values.Look<float>(ref RepairAttachmentUpdateInterval, "WeaponStorage.RepairAttachmentUpdateInterval", DEFAULT_REPAIR_UPDATE_INTERVAL, false);
             repairAttachmentUpdateIntervalBuffer = string.Format("{0:0.0###}", RepairAttachmentUpdateInterval);
+            Scribe_Values.Look<bool>(ref AutoSwitchMelee, "WeaponStorage.AutoSwitchMelee", true, false);
+            Scribe_Values.Look(ref PreferredDamageType, "WeaponStorage.PreferredDamageType", PreferredDamageTypeEnum.ArmorSharp, false);
         }
 
         public static void DoSettingsWindowContents(Rect rect)
         {
-            Listing_Standard l = new Listing_Standard(GameFont.Small);
-            l.ColumnWidth = Math.Min(400, rect.width / 2);
-            l.Begin(rect);
-            l.CheckboxLabeled("WeaponStorage.ShowWeaponsWhenNotDrafted".Translate(), ref ShowWeaponsWhenNotDrafted);
-            l.Gap(10);
+            float y = 40;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.ShowWeaponsWhenNotDrafted".Translate());
+            Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref ShowWeaponsWhenNotDrafted);
+            y += 32;
 
-            l.Label("WeaponStorage.RepairAttachmentSettings".Translate());
-            l.Gap(4);
-            NumberInput(l, "WeaponStorage.SecondsBetweenTicks",
+            y += 20;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.RepairAttachmentSettings".Translate());
+            y += 32;
+
+            NumberInput(ref y, "WeaponStorage.SecondsBetweenTicks",
                 ref RepairAttachmentUpdateInterval, ref repairAttachmentUpdateIntervalBuffer,
                 DEFAULT_REPAIR_UPDATE_INTERVAL, 0.25f, 120f);
-            l.Gap(4);
 
-            NumberInput(l, "WeaponStorage.HPPerTick",
+            NumberInput(ref y, "WeaponStorage.HPPerTick",
                 ref RepairAttachmentMendingSpeed, ref RepairAttachmentMendingSpeedBuffer,
                 DEFAULT_REPAIR_SPEED, 1, 60);
-            l.End();
+
+            y += 20;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.AutoSwitchMeleeForTarget".Translate());
+            Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref AutoSwitchMelee);
+            y += 32;
+            if (AutoSwitchMelee)
+            {
+                Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.PreferredDamageType".Translate());
+                if (Widgets.ButtonText(new Rect(SECOND_COLUMN_X, y, 100, 30), PreferredDamageType.ToString().Translate()))
+                {
+                    List<FloatMenuOption> list = new List<FloatMenuOption>();
+                    if (PreferredDamageType != PreferredDamageTypeEnum.WeaponStorage_None)
+                        list.Add(new FloatMenuOption(PreferredDamageTypeEnum.WeaponStorage_None.ToString().Translate(), delegate ()
+                        {
+                            PreferredDamageType = PreferredDamageTypeEnum.WeaponStorage_None;
+                        }));
+                    if (PreferredDamageType != PreferredDamageTypeEnum.ArmorBlunt)
+                        list.Add(new FloatMenuOption(PreferredDamageTypeEnum.ArmorBlunt.ToString().Translate(), delegate ()
+                        {
+                            PreferredDamageType = PreferredDamageTypeEnum.ArmorBlunt;
+                        }));
+                    if (PreferredDamageType != PreferredDamageTypeEnum.ArmorSharp)
+                        list.Add(new FloatMenuOption(PreferredDamageTypeEnum.ArmorSharp.ToString().Translate(), delegate ()
+                        {
+                            PreferredDamageType = PreferredDamageTypeEnum.ArmorSharp;
+                        }));
+                    Find.WindowStack.Add(new FloatMenu(list));
+                }
+            }
         }
+
+        
         
         public static bool IsTool(Thing t)
         {
@@ -99,12 +142,13 @@ namespace WeaponStorage
             return false;
         }
 
-        private static void NumberInput(Listing_Standard l, string label, ref float val, ref string buffer, float defaultVal, float min, float max)
+        private static void NumberInput(ref float y, string label, ref float val, ref string buffer, float defaultVal, float min, float max)
         {
             try
             {
-                l.TextFieldNumericLabeled<float>(label.Translate(), ref val, ref buffer, min, max);
-                if (l.ButtonText("ResetButton".Translate()))
+                Widgets.Label(new Rect(20, y, FIRST_COLUMN_WIDTH, 30), label.Translate());
+                Widgets.TextFieldNumeric<float>(new Rect(20 + SECOND_COLUMN_X, y, 50, 30), ref val, ref buffer, min, max);
+                if (Widgets.ButtonText(new Rect(80 + SECOND_COLUMN_X, y, 100, 30), "ResetButton".Translate()))
                 {
                     val = defaultVal;
                     buffer = string.Format("{0:0.0###}", defaultVal);
@@ -115,14 +159,16 @@ namespace WeaponStorage
                 val = min;
                 buffer = string.Format("{0:0.0###}", min);
             }
+            y += 32;
         }
 
-        private static void NumberInput(Listing_Standard l, string label, ref int val, ref string buffer, int defaultVal, int min, int max)
+        private static void NumberInput(ref float y, string label, ref int val, ref string buffer, int defaultVal, int min, int max)
         {
             try
             {
-                l.TextFieldNumericLabeled<int>(label.Translate(), ref val, ref buffer, min, max);
-                if (l.ButtonText("ResetButton".Translate()))
+                Widgets.Label(new Rect(20, y, FIRST_COLUMN_WIDTH, 30), label.Translate());
+                Widgets.TextFieldNumeric<int>(new Rect(20 + SECOND_COLUMN_X, y, 50, 30), ref val, ref buffer, min, max);
+                if (Widgets.ButtonText(new Rect(80 + SECOND_COLUMN_X, y, 100, 30), "ResetButton".Translate()))
                 {
                     val = defaultVal;
                     buffer = defaultVal.ToString();
@@ -133,6 +179,7 @@ namespace WeaponStorage
                 val = min;
                 buffer = min.ToString();
             }
+            y += 32;
         }
     }
 }

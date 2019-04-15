@@ -32,6 +32,10 @@
 	<WeaponStorage.AttachedWeaponStorages>Attached Weapon Storages</WeaponStorage.AttachedWeaponStorages>
 	<WeaponStorage.IsRepairing>Is Repairing</WeaponStorage.IsRepairing>
 	
+	<WeaponStorage.AutoSwitchMeleeForTarget>Auto Switch Melee</WeaponStorage.AutoSwitchMeleeForTarget>
+	<WeaponStorage.PreferredDamageType>Preferred Damage Type</WeaponStorage.PreferredDamageType>
+	<WeaponStorage_None>None</WeaponStorage_None>
+	
 	<!-- Shared Weapons Window -->
 	<WeaponStorage.Name>Name</WeaponStorage.Name>
 	<WeaponStorage.AllowedWeapons>Allowed Weapons</WeaponStorage.AllowedWeapons>
