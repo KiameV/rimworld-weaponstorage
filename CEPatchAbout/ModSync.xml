@@ -2,7 +2,7 @@
 <ModSyncNinjaData>
   <ID>267ec536-319d-4a5d-9416-ba8c92579de4</ID>
   <ModName>[KV] Weapon Storage Combat Extended Patch - 1.0</ModName>
-  <Version>1.0.3.0</Version>
+  <Version>1.0.3.1</Version>
   <SaveBreaking>False</SaveBreaking>
   <Host name="Direct">
     <AboutUri>https://raw.githubusercontent.com/KiameV/rimworld-weaponstorage/master/CEPatchAbout/About.xml</AboutUri>

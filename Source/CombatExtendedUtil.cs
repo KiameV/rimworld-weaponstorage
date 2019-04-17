@@ -118,7 +118,12 @@ namespace WeaponStorage
             return false;
         }
 
-        public static bool TryRemoveAmmo(ThingDef def, int count, out Thing ammo)
+        public static bool TryRemoveAmmo(ThingDef def, int count)
+        {
+            return TryRemoveAmmo(def, count, out Thing t, false);
+        }
+
+        public static bool TryRemoveAmmo(ThingDef def, int count, out Thing ammo, bool spawn = true)
         {
             if (count > 0 && 
                 def != null &&
@@ -132,7 +137,10 @@ namespace WeaponStorage
                 Ammo[def] = i;
 
                 //Log.Warning("Remove " + def.defName + " x" + count);
-                ammo = MakeAmmo(def, count);
+                if (spawn)
+                    ammo = MakeAmmo(def, count);
+                else
+                    ammo = null;
                 return true;
             }
             ammo = null;

@@ -386,6 +386,7 @@ namespace CombatExtendedWeaponStoragePatch
         }
     }*/
 
+    /* Prevent pawns from putting ammo in inventory
     [HarmonyPatch(typeof(ThingOwner<Thing>))]
     [HarmonyPatch(MethodType.Normal)]
     [HarmonyPatch("TryAdd", new Type[] { typeof(Thing), typeof(int), typeof(bool) })]
@@ -406,6 +407,39 @@ namespace CombatExtendedWeaponStoragePatch
             }
             return true;
         }
+    }*/
+
+    [HarmonyPatch(typeof(CompAmmoUser), "TryReduceAmmoCount")]
+    static class Patch_CompAmmoUser_TryReduceAmmoCount
+    {
+        static void Postfix(CompAmmoUser __instance, ref bool __result)
+        {
+            if (__result == false &&
+                (__instance.Wielder != null || __instance.turret != null))
+            {
+                if (!__instance.HasMagazine && __instance.UseAmmo)
+                {
+                    var def = __instance.GetType().GetField("selectedAmmo", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance) as ThingDef;
+                    if (CombatExtendedUtil.TryRemoveAmmo(def, 1))
+                    {
+                        //__instance.GetType().GetField("currentAmmoInt", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(__instance, ammo.def as AmmoDef);
+                        //__instance.Props.ammoSet
+                        __result = true;
+                    }
+                }
+                var ammoTypes = __instance.Props?.ammoSet?.ammoTypes;
+                if (ammoTypes != null)
+                {
+                    foreach (var t in ammoTypes)
+                    {
+                        if (CombatExtendedUtil.HasAmmo(t.projectile))
+                        {
+                            __result = true;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     [HarmonyPatch(typeof(Command_Reload), "MakeAmmoMenu")]
@@ -422,17 +456,17 @@ namespace CombatExtendedWeaponStoragePatch
                 {
                     if (CombatExtendedUtil.HasAmmo(curLink.ammo))
                     {
-                        bool contains = false;
+                        bool containsLabelCap = false;
                         foreach (var o in options)
                         {
                             if (o.Label.Equals(curLink.ammo.ammoClass.LabelCap))
                             {
-                                contains = true;
+                                containsLabelCap = true;
                                 break;
                             }
                         }
-
-                        if (!contains)
+                        
+                        if (!containsLabelCap)
                         {
                             options.Insert(0,
                                 new FloatMenuOption(
