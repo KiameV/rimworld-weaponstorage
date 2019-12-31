@@ -123,6 +123,101 @@ namespace CombatExtendedWeaponStoragePatch
         }
     }
 
+   /* [HarmonyPatch(typeof(JobGiver_TakeAndEquip), "GetPriorityWork")]
+    static class Patch_JobGiver_TakeAndEquip_GetPriority
+    {
+        static void Prefix(JobGiver_TakeAndEquip __instance, Pawn pawn)
+        {
+            Log.Warning("Start");
+            bool trader = pawn.kindDef.trader;
+            if (trader)
+            {
+                return;
+            }
+            else
+            {
+                bool flag = pawn.CurJob != null;
+                JobDef jobDef = flag ? pawn.CurJob.def : null;
+                bool flag2 = flag && !jobDef.isIdle;
+                if (flag2)
+                {
+                    return;
+                }
+                else
+                {
+                    bool flag3 = pawn.equipment != null && pawn.equipment.Primary != null;
+                    CompAmmoUser compAmmoUser = flag3 ? ThingCompUtility.TryGetComp<CompAmmoUser>(pawn.equipment.Primary) : null;
+                    bool flag4 = pawn.Faction.IsPlayer && compAmmoUser != null;
+                    if (flag4)
+                    {
+                        Loadout loadout = pawn.GetLoadout();
+                        bool flag5 = loadout != null && loadout.SlotCount > 0;
+                        if (flag5)
+                        {
+                            Log.Warning("flag5");
+                        }
+                    }
+                    bool flag6 = !flag3;
+                    if (flag6)
+                    {
+                        bool flag7 = (bool)typeof(JobGiver_TakeAndEquip).GetMethod("Unload", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { pawn });
+                        if (flag7)
+                        {
+                            Log.Warning("flag7");
+                        }
+                        else
+                        {
+                            Log.Warning("flag7else");
+                        }
+                    }
+                    else
+                    {
+                        CompInventory compInventory = pawn.TryGetComp<CompInventory>();
+                        int viableAmmoCarried = 0;
+                        float viableAmmoBulk = 0;
+                        var primaryAmmoUser = pawn.equipment.Primary.TryGetComp<CompAmmoUser>();
+                        foreach (AmmoLink link in primaryAmmoUser.Props.ammoSet.ammoTypes)
+                        {
+                            var count = compInventory.AmmoCountOfDef(link.ammo);
+                            viableAmmoCarried += count;
+                            viableAmmoBulk += count * link.ammo.GetStatValueAbstract(CE_StatDefOf.Bulk);
+                        }
+
+                        // ~2/3rds of the inventory bulk minus non-usable and non-ammo bulk could be filled with ammo
+                        float potentialAmmoBulk = .66f * (compInventory.capacityBulk - compInventory.currentBulk + viableAmmoBulk);
+
+                        // There's less ammo [bulk] than fits the potential ammo bulk [bulk]
+                        if (viableAmmoBulk < potentialAmmoBulk)
+                        {
+                            Log.Warning("1");
+                            // There's less ammo [nr] than fits a clip [nr]
+                            FloatRange magazineSize = new FloatRange(1f, 2f);
+                            if (primaryAmmoUser.Props.magazineSize == 0 || viableAmmoCarried < magazineSize.min)
+                            {
+                                Log.Warning("Unload Start 1");
+                                __instance.GetType().GetMethod("Unload", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { pawn });
+                                Log.Warning("Unload Done 1");
+                                return;
+                            }
+
+                            Log.Warning("2");
+                            // There's less ammo [nr] than fits two clips [nr] && no enemies are close
+                            if (viableAmmoCarried < magazineSize.max
+                             && !PawnUtility.EnemiesAreNearby(pawn, 30, true))
+                            {
+                                Log.Warning("Unload Start 2");
+                                __instance.GetType().GetMethod("Unload", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { pawn });
+                                Log.Warning("Unload Done 2");
+                                return;
+                            }
+                            Log.Warning("3");
+                        }
+                    }
+                }
+            }
+        }
+    }*/
+
     [HarmonyPatch(typeof(CompAmmoUser), "TryStartReload")]
     static class Patch_CompAmmoUser_TryStartReload
     {
@@ -253,7 +348,7 @@ namespace CombatExtendedWeaponStoragePatch
     {
         static void Prefix(Pawn_JobTracker __instance, Job newJob, JobCondition lastJobEndCondition, ThinkNode jobGiver, bool resumeCurJobAfterwards, bool cancelBusyStances, ThinkTreeDef thinkTree, JobTag? tag, bool fromQueue)
         {
-            if (newJob != null && newJob.targetB.Thing is StoredAmmo sa)
+            if (newJob != null && newJob.targetB != null && newJob.targetB.Thing is StoredAmmo sa)
             {
                 Pawn pawn = __instance.GetType().GetField("pawn", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(__instance) as Pawn;
                 

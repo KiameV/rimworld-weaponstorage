@@ -27,9 +27,11 @@ namespace WeaponStorage
 #endif
                 foreach (ThingWithComps w in this.Weapons)
                 {
-                    AssignedWeapon aw = new AssignedWeapon();
-                    aw.IsEquipped = primary == w;
-                    aw.Weapon = w;
+                    AssignedWeapon aw = new AssignedWeapon
+                    {
+                        IsEquipped = primary == w,
+                        Weapon = w
+                    };
 #if ASSIGNED_WEAPONS
                     Log.Message("        " + ((aw.Weapon == null) ? "<null>" : aw.Weapon.Label) + "    IsEquipped: " + aw.IsEquipped);
 #endif

@@ -67,6 +67,7 @@
     <Compile Include="UI\SharedWeaponsUI.cs" />
     <Compile Include="UI\Util.cs" />
     <Compile Include="UI\WeaponSelected.cs" />
+    <Compile Include="WeaponStorageUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

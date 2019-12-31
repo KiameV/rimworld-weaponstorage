@@ -24,6 +24,9 @@ namespace WeaponStorage
 						if (__result != null)
 							l.AddRange(__result);
 
+                        if (pawn.equipment.Primary != null)
+                            l.Add(CreateUnequipGizmo(pawn, weapons));
+
 						foreach (ThingWithComps weapon in weapons.Weapons)
 						{
 							bool isTool = Settings.IsTool(weapon);
@@ -116,11 +119,27 @@ namespace WeaponStorage
                 sb.Append(" ");
                 sb.Append(def.label);
                 a.defaultLabel = sb.ToString();
-                a.defaultDesc = "Equip this item.";
+                a.defaultDesc = "WeaponStorage.EquipDesc".Translate();
                 a.activateSound = SoundDef.Named("Click");
                 a.groupKey = (label + def).GetHashCode();
                 a.action = equipWeaponAction;
                 return a;
+            }
+            private static Command_Action CreateUnequipGizmo(Pawn pawn, AssignedWeaponContainer weapons)
+            {
+                return new Command_Action
+                {
+                    icon = TexCommand.AttackMelee,
+                    defaultLabel = "WeaponStorage.Unequip".Translate(),
+                    defaultDesc = "WeaponStorage.UnequipDesc".Translate(),
+                    activateSound = SoundDef.Named("Click"),
+                    groupKey = "WeaponStorage.Unequip".GetHashCode(),
+                    action = delegate
+                    {
+                        HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, weapons);
+                        weapons.SetLastThingUsed(pawn, null);
+                    }
+                };
             }
         }
     }

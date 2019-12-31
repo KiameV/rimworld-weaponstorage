@@ -49,6 +49,25 @@ namespace WeaponStorage
 
     public static class HarmonyPatchUtil
     {
+        public static void UnequipPrimaryWeapon(Pawn pawn, AssignedWeaponContainer c)
+        {
+            ThingWithComps primary = pawn.equipment.Primary;
+            pawn.equipment.Remove(primary);
+            if (pawn.equipment.Primary != null)
+            {
+                Log.Warning("Failed to unequip " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "].");
+                return;
+            }
+            if (c == null)
+            {
+                WorldComp.Add(primary);
+            }
+            else if (!c.Weapons.Contains(primary))
+            {
+                c.Weapons.Add(primary);
+            }
+        }
+
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
         {
             ThingWithComps primary = pawn.equipment.Primary;

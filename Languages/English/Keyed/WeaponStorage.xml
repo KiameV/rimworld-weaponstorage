@@ -27,7 +27,10 @@
 	<WeaponStorage.Count>Stored Weapons</WeaponStorage.Count>
 	
 	<WeaponStorage.Equip>Equip</WeaponStorage.Equip>
+	<WeaponStorage.EquipDesc>Equip this item</WeaponStorage.EquipDesc>
 	<WeaponStorage.EquipShared>Equip Shared</WeaponStorage.EquipShared>
+	<WeaponStorage.Unequip>Unequip</WeaponStorage.Unequip>
+	<WeaponStorage.UnequipDesc>Unequip current weapon</WeaponStorage.UnequipDesc>
 	
 	<WeaponStorage.AttachedWeaponStorages>Attached Weapon Storages</WeaponStorage.AttachedWeaponStorages>
 	<WeaponStorage.IsRepairing>Is Repairing</WeaponStorage.IsRepairing>
