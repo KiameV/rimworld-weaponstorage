@@ -156,7 +156,7 @@ namespace WeaponStorage.UI
                 const int BUFFER = 2;
 				float width = inRect.width - 100;
 				float x = 0, y = 0;
-				scrollPosition = GUI.BeginScrollView(new Rect(40, 40, width, inRect.height - y - 50), scrollPosition, new Rect(0, 0, width - 16, this.PreviousY));
+				scrollPosition = GUI.BeginScrollView(new Rect(40, 40, width, inRect.height - y - 85), scrollPosition, new Rect(0, 0, width - 16, this.PreviousY));
                 if (this.PossibleWeapons != null)
                 {
                     ThingWithComps weapon;

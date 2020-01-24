@@ -24,8 +24,8 @@ namespace WeaponStorage
 						if (__result != null)
 							l.AddRange(__result);
 
-                        if (pawn.equipment.Primary != null)
-                            l.Add(CreateUnequipGizmo(pawn, weapons));
+                        //if (pawn.equipment.Primary != null)
+                        //    l.Add(CreateUnequipGizmo(pawn, weapons));
 
 						foreach (ThingWithComps weapon in weapons.Weapons)
 						{
@@ -50,7 +50,7 @@ namespace WeaponStorage
 									{
 										HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
 
-										weapons.SetLastThingUsed(pawn, weapon);
+										weapons.SetLastThingUsed(pawn, weapon, false);
 									}));
 							}
 						}
@@ -125,7 +125,7 @@ namespace WeaponStorage
                 a.action = equipWeaponAction;
                 return a;
             }
-            private static Command_Action CreateUnequipGizmo(Pawn pawn, AssignedWeaponContainer weapons)
+            /*private static Command_Action CreateUnequipGizmo(Pawn pawn, AssignedWeaponContainer weapons)
             {
                 return new Command_Action
                 {
@@ -137,10 +137,10 @@ namespace WeaponStorage
                     action = delegate
                     {
                         HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, weapons);
-                        weapons.SetLastThingUsed(pawn, null);
+                        weapons.SetLastThingUsed(pawn, null, true);
                     }
                 };
-            }
+            }*/
         }
     }
 }

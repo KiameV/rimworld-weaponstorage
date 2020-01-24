@@ -12,6 +12,7 @@ namespace WeaponStorage
         private ThingWithComps LastToolUsed = null;
 
         private List<AssignedWeapon> tmp;
+
         public void ExposeData()
         {
 #if ASSIGNED_WEAPONS
@@ -104,7 +105,7 @@ namespace WeaponStorage
                 }
                 else
                 {
-                    this.SetLastThingUsed(pawn, null);
+                    this.SetLastThingUsed(pawn, null, false);
                 }
             }
             if (!result)
@@ -118,7 +119,7 @@ namespace WeaponStorage
             return result;
         }
 
-        public void SetLastThingUsed(Pawn pawn, ThingWithComps t)
+        public void SetLastThingUsed(Pawn pawn, ThingWithComps t, bool isForceMelee)
         {
 #if LAST_THING_USED
             Log.Warning("Begin AssignedWeaponContainer.SetLastThingUsed " + pawn.Name.ToStringShort + " " + t.Label);
