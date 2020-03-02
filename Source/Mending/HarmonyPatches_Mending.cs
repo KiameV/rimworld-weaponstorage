@@ -1,4 +1,4 @@
-﻿using Harmony;
+﻿using HarmonyLib;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace MendingWeaponStoragePatch
             {
                 try
                 {
-                    var harmony = HarmonyInstance.Create("com.mendingweaponstoragepatch.rimworld.mod");
+                    var harmony = new Harmony("com.mendingweaponstoragepatch.rimworld.mod");
                     harmony.PatchAll(Assembly.GetExecutingAssembly());
 
                     Log.Message(

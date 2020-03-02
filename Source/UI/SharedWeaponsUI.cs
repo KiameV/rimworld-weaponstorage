@@ -34,7 +34,7 @@ namespace WeaponStorage.UI
 			Text.Font = GameFont.Small;
 
 			float outerY = 0;
-			if (Widgets.ButtonText(new Rect(0, outerY, 250, 32), ((this.selectedFilter == null) ? "WeaponStorage.SharedWeaponsFilter".Translate() : this.selectedFilter.Label)))
+			if (Widgets.ButtonText(new Rect(0, outerY, 250, 32), ((this.selectedFilter == null) ? "WeaponStorage.SharedWeaponsFilter".Translate().ToString() : this.selectedFilter.Label)))
 			{
 				if (WorldComp.SharedWeaponFilter.Count > 0)
 				{

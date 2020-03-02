@@ -1,4 +1,4 @@
-﻿using Harmony;
+﻿using HarmonyLib;
 using RimWorld;
 using RimWorld.Planet;
 using System;
@@ -15,7 +15,7 @@ namespace WeaponStorage
     {
         static HarmonyPatches()
         {
-            var harmony = HarmonyInstance.Create("com.weaponstorage.rimworld.mod");
+            var harmony = new Harmony("com.weaponstorage.rimworld.mod");
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             Log.Message(
