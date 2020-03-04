@@ -180,6 +180,10 @@ namespace WeaponStorage.UI
                                     if (this.assignedWeapons.Pawn.equipment.Primary == weapon)
                                     {
                                         this.assignedWeapons.Pawn.equipment.Remove(weapon);
+                                        if (this.assignedWeapons.Pawn.jobs.curJob.def == JobDefOf.Hunt)
+                                        {
+                                            this.assignedWeapons.Pawn.jobs.StopAll();
+                                        }
                                     }
                                     if (this.assignedWeapons.Weapons.Remove(weapon))
                                     {
