@@ -62,10 +62,8 @@ namespace WeaponStorage
             {
                 WorldComp.Add(primary);
             }
-            else if (!c.Weapons.Contains(primary))
-            {
-                c.Weapons.Add(primary);
-            }
+            else
+                c.Add(primary);
         }
 
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
@@ -83,13 +81,9 @@ namespace WeaponStorage
                         {
                             WorldComp.Add(weapon);
                         }
-                        else
+                        else if (c.Add(weapon))
                         {
-                            if (!c.Weapons.Contains(weapon))
-                            {
-                                c.Weapons.Add(weapon);
-                            }
-                            c.Weapons.Remove(pawn.equipment.Primary);
+                            c.Remove(pawn.equipment.Primary);
                         }
                     }
                     Log.Warning("Failed to replace " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "] with [" + weapon.Label + "].");
@@ -99,10 +93,8 @@ namespace WeaponStorage
                 {
                     WorldComp.Add(primary);
                 }
-                else if (!c.Weapons.Contains(primary))
-                {
-                    c.Weapons.Add(primary);
-                }
+                else
+                    c.Add(primary);
             }
             pawn.equipment.AddEquipment(weapon);
         }
@@ -431,7 +423,7 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Postfix(Pawn __instance)
         {
-            if (__instance.Dead)
+            if (__instance.Dead && __instance.apparel.LockedApparel?.Count == 0)
             {
                 if (WorldComp.AssignedWeapons.TryGetValue(__instance, out AssignedWeaponContainer c))
                 {
@@ -463,7 +455,6 @@ namespace WeaponStorage
             {
                 __instance.Remove(__instance.Primary);
             }
-
 
             /*ThingWithComps primary = __instance.Primary;
             if (primary != null)
@@ -516,10 +507,10 @@ namespace WeaponStorage
         {
             if (eq.def.IsWeapon && __state != null)
             {
-                AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(__state, out c))
+                if (WorldComp.AssignedWeapons.TryGetValue(__state, out AssignedWeaponContainer c) && 
+                    c.Contains(eq))
                 {
-                    if (c.Weapons.Remove(eq))
+                    if (c.Remove(eq))
                     {
                         if (eq.def.IsRangedWeapon)
                         {
@@ -530,6 +521,21 @@ namespace WeaponStorage
                         {
                             if (!HarmonyPatchUtil.EquipMelee(c))
                                 HarmonyPatchUtil.EquipRanged(c);
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (SharedWeaponFilter swf in WorldComp.SharedWeaponFilter)
+                    {
+                        if (swf.AssignedPawns.Contains(__state) && 
+                            swf.Allows(eq))
+                        {
+                            if (!WorldComp.Add(eq))
+                            {
+                                Log.Warning($"unable to find weapon storage that can hold {eq.ThingID} so it will be dropped.");
+                                WorldComp.Drop(eq);
+                            }
                         }
                     }
                 }
@@ -545,9 +551,8 @@ namespace WeaponStorage
         {
             if (eq.def.equipmentType == EquipmentType.Primary && __instance.Primary != null)
             {
-                AssignedWeaponContainer c;
-                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out c) &&
-                    c.Weapons.Contains(eq))
+                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer c) &&
+                    c.Contains(eq))
                 {
                     __instance.Remove(eq);
                 }

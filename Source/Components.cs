@@ -56,7 +56,7 @@ namespace WeaponStorage
 
             foreach (AssignedWeaponContainer c in AssignedWeapons.Values)
             {
-                c.Weapons.Clear();
+                c.Clear();
             }
             AssignedWeapons.Clear();
 

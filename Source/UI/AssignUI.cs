@@ -87,7 +87,7 @@ namespace WeaponStorage.UI
             }
             else
             {
-                size = this.assignedWeapons.Weapons.Count + this.weaponStorage.Count;
+                size = this.assignedWeapons.Count + this.weaponStorage.Count;
             }
 
             this.PossibleWeapons = new List<ThingWithComps>(size);
@@ -106,7 +106,7 @@ namespace WeaponStorage.UI
 
         private bool IsAssignedWeapon(int i)
         {
-            return this.assignedWeapons != null && i < this.assignedWeapons.Weapons.Count;
+            return this.assignedWeapons != null && i < this.assignedWeapons.Count;
         }
 
 #if TRACE
@@ -185,7 +185,7 @@ namespace WeaponStorage.UI
                                             this.assignedWeapons.Pawn.jobs.StopAll();
                                         }
                                     }
-                                    if (this.assignedWeapons.Weapons.Remove(weapon))
+                                    if (this.assignedWeapons.Remove(weapon))
                                     {
                                         if (!this.weaponStorage.AddWeapon(weapon) &&
                                             !WorldComp.Add(weapon))

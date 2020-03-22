@@ -28,9 +28,9 @@ namespace WeaponStorage.UI
 			foreach (ThingDef d in DefDatabase<ThingDef>.AllDefs)
 			{
 				if (d.IsRangedWeapon)
-					this.rangedWeapons.Add(d.label, d);
+					this.rangedWeapons[d.label] = d;
 				else if(d.IsMeleeWeapon)
-					this.meleeWeapons.Add(d.label, d);
+					this.meleeWeapons[d.label] = d;
 			}
 		}
 

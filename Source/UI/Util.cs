@@ -31,7 +31,7 @@ namespace WeaponStorage.UI
 		public static IEnumerable<SelectablePawns> GetPawns(bool excludeNonViolent)
 		{
 			foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
-				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead)
+				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead && p.apparel.LockedApparel?.Count == 0)
                 {
                     if (!excludeNonViolent || !p.WorkTagIsDisabled(WorkTags.Violent))
                         yield return new SelectablePawns(p);

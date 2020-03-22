@@ -6,12 +6,16 @@ namespace WeaponStorage
 {
     public class AssignedWeaponContainer : IExposable
     {
-        public List<ThingWithComps> Weapons = new List<ThingWithComps>();
+        public HashSet<int> weaponIds = new HashSet<int>();
+        public List<ThingWithComps> weapons = new List<ThingWithComps>();
         public Pawn Pawn;
         private ThingWithComps LastWeaponUsed = null;
         private ThingWithComps LastToolUsed = null;
 
         private List<AssignedWeapon> tmp;
+
+        public IEnumerable<ThingWithComps> Weapons => this.weapons;
+        public int Count => this.weaponIds.Count;
 
         public void ExposeData()
         {
@@ -20,7 +24,7 @@ namespace WeaponStorage
 #endif
             if (Scribe.mode == LoadSaveMode.Saving)
             {
-                this.tmp = new List<AssignedWeapon>(this.Weapons.Count);
+                this.tmp = new List<AssignedWeapon>(this.weapons.Count);
                 ThingWithComps primary = this.Pawn.equipment.Primary;
 #if ASSIGNED_WEAPONS
                 Log.Message("    Primary: " + ((primary == null) ? "<null>" : primary.Label));
@@ -47,10 +51,14 @@ namespace WeaponStorage
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
-                this.Weapons.Clear();
+                if (this.weaponIds == null)
+                    this.weaponIds = new HashSet<int>();
+
+                this.weapons.Clear();
                 foreach (AssignedWeapon aw in this.tmp)
                 {
-                    this.Weapons.Add(aw.Weapon);
+                    this.weapons.Add(aw.Weapon);
+                    this.weaponIds.Add(aw.Weapon.thingIDNumber);
                 }
             }
 
@@ -67,19 +75,26 @@ namespace WeaponStorage
 #endif
         }
 
-        public void Add(ThingWithComps weapon)
+        public bool Add(ThingWithComps weapon)
         {
-#if DEBUG
-            Log.Warning(this.GetType().Name + ".Remove(" + weapon.Label + ")");
-#endif
-            if (weapon == null || this.Weapons.Contains(weapon))
+            if (!this.Contains(weapon))
             {
-#if DEBUG
-                Log.Warning("    Contains: " + weapon.Label + ")");
-#endif
-                return;
+                this.weapons.Add(weapon);
+                this.weaponIds.Add(weapon.thingIDNumber);
+                return true;
             }
-            this.Weapons.Add(weapon);
+            return false;
+        }
+
+        public bool Contains(ThingWithComps weapon)
+        {
+            return weapon != null && this.weaponIds.Contains(weapon.thingIDNumber);
+        }
+
+        public void Clear()
+        {
+            this.weaponIds.Clear();
+            this.weapons.Clear();
         }
 
         public bool TryGetLastThingUsed(Pawn pawn, out ThingWithComps t)
@@ -99,7 +114,7 @@ namespace WeaponStorage
 
             if (t != null)
             {
-                if (this.Weapons.Contains(t))
+                if (this.weaponIds.Contains(t.thingIDNumber))
                 {
                     result = true;
                 }
@@ -153,7 +168,8 @@ namespace WeaponStorage
             {
                 this.LastWeaponUsed = null;
             }
-            return this.Weapons.Remove(weapon);
+            this.weaponIds.Remove(weapon.thingIDNumber);
+            return this.weapons.Remove(weapon);
         }
         
         private class AssignedWeapon : IExposable
