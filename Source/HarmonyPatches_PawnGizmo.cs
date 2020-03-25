@@ -76,7 +76,7 @@ namespace WeaponStorage
 									l.Add(CreateEquipWeaponGizmo(d, pawn,
 										delegate
 										{
-											if (WorldComp.TryRemoveWeapon(d, f, out ThingWithComps weapon))
+											if (WorldComp.TryRemoveWeapon(d, f, false, out ThingWithComps weapon))
 											{
 												HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
                                                 f.UpdateDefCache(d);

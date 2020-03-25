@@ -91,7 +91,7 @@ namespace WeaponStorage
             return false;
         }
 
-		public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, out ThingWithComps weapon)
+		public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, bool includeBioencoded, out ThingWithComps weapon)
 		{
 			if (def != null)
 			{
@@ -104,7 +104,7 @@ namespace WeaponStorage
 
 				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
 				{
-					if (ws.TryRemoveWeapon(def, filter, out weapon))
+					if (ws.TryRemoveWeapon(def, filter, includeBioencoded, out weapon))
 						return true;
 					break;
 				}

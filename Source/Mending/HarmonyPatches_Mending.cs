@@ -62,29 +62,38 @@ namespace MendingWeaponStoragePatch
                     {
 						foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in ws.StoredWeapons)
 						{
-							if (bill.ingredientFilter.Allows(kv.Key))
-							{
-								foreach (ThingWithComps t in kv.Value)
-								{
-									if (bill.ingredientFilter.Allows(t) &&
-										t.HitPoints != t.MaxHitPoints)
-									{
-										ws.Remove(t);
-										if (t.Spawned == false)
-										{
-											Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
-											__result = false;
-										}
-										else
-										{
-											__result = true;
-											chosen.Add(new ThingCount(t, 1));
-										}
-										return;
-									}
-								}
-							}
-						}
+                            FindMatches(ref __result, bill, chosen, ws, kv);
+                        }
+                        foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in ws.StoredBioEncodedWeapons)
+                        {
+                            FindMatches(ref __result, bill, chosen, ws, kv);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void FindMatches(ref bool __result, Bill bill, List<ThingCount> chosen, Building_WeaponStorage ws, KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv)
+        {
+            if (bill.ingredientFilter.Allows(kv.Key))
+            {
+                foreach (ThingWithComps t in kv.Value)
+                {
+                    if (bill.ingredientFilter.Allows(t) &&
+                        t.HitPoints != t.MaxHitPoints)
+                    {
+                        ws.Remove(t);
+                        if (t.Spawned == false)
+                        {
+                            Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
+                            __result = false;
+                        }
+                        else
+                        {
+                            __result = true;
+                            chosen.Add(new ThingCount(t, 1));
+                        }
+                        return;
                     }
                 }
             }

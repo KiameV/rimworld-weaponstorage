@@ -98,7 +98,11 @@ namespace WeaponStorage.UI
                     this.PossibleWeapons.Add(w);
                 }
             }
-            foreach (ThingWithComps w in this.weaponStorage.AllWeapons)
+            foreach (ThingWithComps w in this.weaponStorage.GetWeapons(false))
+            {
+                this.PossibleWeapons.Add(w);
+            }
+            foreach (ThingWithComps w in this.weaponStorage.GetBioEncodedWeapons())
             {
                 this.PossibleWeapons.Add(w);
             }
@@ -226,7 +230,7 @@ namespace WeaponStorage.UI
                         Widgets.Label(new Rect(x, y, 250, HEIGHT), weapon.Label);
 						x += 250 + BUFFER;
 
-						if (Widgets.ButtonImage(new Rect(width - 16 - HEIGHT, y, 20, 20), DropTexture))
+                        if (Widgets.ButtonImage(new Rect(width - 16 - HEIGHT, y, 20, 20), DropTexture))
                         {
                             if (this.IsAssignedWeapon(i))
                             {
@@ -245,6 +249,15 @@ namespace WeaponStorage.UI
                             this.RebuildPossibleWeapons();
                             break;
                         }
+
+                        var biocodableComp = weapon.GetComp<CompBiocodableWeapon>();
+                        if (biocodableComp?.CodedPawn != null)
+                        {
+                            y += HEIGHT - 4;
+                            Widgets.Label(new Rect(x - 250 - BUFFER, y, 250, 20), biocodableComp.CompInspectStringExtra());
+                            y += 4;
+                        }
+
                         this.PossibleWeapons[i] = weapon;
 						y += HEIGHT + BUFFER;
 					}
@@ -257,7 +270,7 @@ namespace WeaponStorage.UI
                         Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.Count);
                     }
 #endif
-                    foreach (ThingWithComps t in this.weaponStorage.AllWeapons)
+                    foreach (ThingWithComps t in this.weaponStorage.GetWeapons(false))
                     {
 #if TRACE
                         if (i > 600)
@@ -288,6 +301,47 @@ namespace WeaponStorage.UI
 						}
 						y += HEIGHT + BUFFER;
 					}
+
+                    foreach (ThingWithComps t in this.weaponStorage.GetBioEncodedWeapons())
+                    {
+#if TRACE
+                        if (i > 600)
+                        {
+                            Log.Warning("-" + t.Label);
+                        }
+#endif
+                        if (!IncludeWeapon(t))
+                            continue;
+
+                        x = 34;
+                        Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
+                        x += HEIGHT + BUFFER;
+
+                        if (Widgets.InfoCardButton(x, y, t))
+                        {
+                            Find.WindowStack.Add(new Dialog_InfoCard(t));
+                        }
+                        x += HEIGHT + BUFFER;
+
+                        Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
+                        x += 250 + BUFFER;
+
+                        if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
+                        {
+                            this.weaponStorage.Remove(t);
+                            break;
+                        }
+                        
+                        var biocodableComp = t.GetComp<CompBiocodableWeapon>();
+                        if (biocodableComp?.CodedPawn != null)
+                        {
+                            y += HEIGHT - 4;
+                            Widgets.Label(new Rect(x - 250 - BUFFER, y, 250, 20), biocodableComp.CompInspectStringExtra());
+                            y += 4;
+                        }
+
+                        y += HEIGHT + BUFFER;
+                    }
                 }
 
                 GUI.EndScrollView();

@@ -259,7 +259,7 @@ namespace WeaponStorage
             for (LinkedListNode<Building_WeaponStorage> n = this.AttachedWeaponStorages.First; n != null; n = n.Next)
             {
                 Building_WeaponStorage ws = n.Value;
-                foreach (ThingWithComps w in ws.AllWeapons)
+                foreach (ThingWithComps w in ws.GetWeapons(true))
                 {
                     if (w.HitPoints < w.MaxHitPoints &&
                         !AllWeaponsBeingRepaired.Contains(w))

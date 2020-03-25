@@ -26,7 +26,7 @@ namespace WeaponStorage
             {
                 foreach (Building_WeaponStorage storage in storages)
                 {
-                    foreach (ThingWithComps t in storage.AllWeapons)
+                    foreach (ThingWithComps t in storage.GetWeapons(true))
                     {
                         wealthItems += (float)t.stackCount + t.MarketValue;
                     }

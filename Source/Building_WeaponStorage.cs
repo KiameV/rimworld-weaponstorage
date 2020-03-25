@@ -11,6 +11,7 @@ namespace WeaponStorage
     public class Building_WeaponStorage : Building_Storage, IStoreSettingsParent
     {
         public readonly Dictionary<ThingDef, LinkedList<ThingWithComps>> StoredWeapons = new Dictionary<ThingDef, LinkedList<ThingWithComps>>();
+        public readonly Dictionary<ThingDef, LinkedList<ThingWithComps>> StoredBioEncodedWeapons = new Dictionary<ThingDef, LinkedList<ThingWithComps>>();
 
         private Map CurrentMap { get; set; }
 
@@ -35,8 +36,9 @@ namespace WeaponStorage
 				foreach (ThingWithComps t in l)
 					if (filter.Allows(t))
 						return true;
-			}
-			return false;
+            }
+            // Do not include bio incoded here
+            return false;
 		}
 
 		public override void SpawnSetup(Map map, bool respawningAfterLoad)
@@ -107,6 +109,15 @@ namespace WeaponStorage
 						}
                     this.StoredWeapons.Clear();
                 }
+                if (this.StoredBioEncodedWeapons != null)
+                {
+                    foreach (LinkedList<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                        foreach (ThingWithComps t in l)
+                        {
+                            this.DropThing(t);
+                        }
+                    this.StoredBioEncodedWeapons.Clear();
+                }
             }
             catch (Exception e)
             {
@@ -126,16 +137,35 @@ namespace WeaponStorage
             }
         }
 
-		public bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, out ThingWithComps weapon)
+		public bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, bool includeBioencoded, out ThingWithComps weapon)
 		{
-			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
-				for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
-					if (filter.Allows(n.Value))
-					{
-						weapon = n.Value;
-						l.Remove(n);
-						return true;
-					}
+            if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
+            {
+                for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
+                {
+                    if (filter.Allows(n.Value))
+                    {
+                        weapon = n.Value;
+                        l.Remove(n);
+                        return true;
+                    }
+                }
+            }
+            if (includeBioencoded)
+            {
+                if (this.StoredBioEncodedWeapons.TryGetValue(def, out l))
+                {
+                    for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
+                    {
+                        if (filter.Allows(n.Value))
+                        {
+                            weapon = n.Value;
+                            l.Remove(n);
+                            return true;
+                        }
+                    }
+                }
+            }
 			weapon = null;
 			return false;
 		}
@@ -144,7 +174,7 @@ namespace WeaponStorage
         {
             get
             {
-                return this.StoredWeapons.Count;
+                return this.StoredWeapons.Count + this.StoredBioEncodedWeapons.Count;
             }
         }
 
@@ -181,8 +211,11 @@ namespace WeaponStorage
                 this.AllowAdds = false;
 				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
 					this.DropWeapons(l);
+                foreach (IEnumerable<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                    this.DropWeapons(l);
                 CombatExtendedUtil.EmptyAmmo(this);
                 this.StoredWeapons.Clear();
+                this.StoredBioEncodedWeapons.Clear();
             }
             finally
             {
@@ -229,9 +262,20 @@ namespace WeaponStorage
 
 		private bool Contains(ThingWithComps t)
 		{
-			if (t != null &&
-				this.StoredWeapons.TryGetValue(t.def, out LinkedList<ThingWithComps> l))
-				return l.Contains(t);
+            LinkedList<ThingWithComps> l;
+            if (t != null)
+            {
+                if (EquipmentUtility.IsBiocoded(t))
+                {
+                    if (this.StoredBioEncodedWeapons.TryGetValue(t.def, out l))
+                        return l.Contains(t);
+                }
+                else
+                {
+                    if (this.StoredWeapons.TryGetValue(t.def, out l))
+                        return l.Contains(t);
+                }
+            }
 			return false;
 		}
 
@@ -263,7 +307,8 @@ namespace WeaponStorage
                     }
                     if (!this.Contains(weapon))
                     {
-                        this.AddToSortedList(weapon);
+                        var d = (EquipmentUtility.IsBiocoded(weapon)) ? this.StoredBioEncodedWeapons : this.StoredWeapons;
+                        this.AddToSortedList(weapon, d);
                     }
                     return true;
                 }
@@ -271,13 +316,13 @@ namespace WeaponStorage
             return false;
         }
 
-        private void AddToSortedList(ThingWithComps weapon)
+        private void AddToSortedList(ThingWithComps weapon, Dictionary<ThingDef, LinkedList<ThingWithComps>> storage)
         {
             string weaponDefLabel = weapon.def.label;
-			if (!this.StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> l))
+			if (!storage.TryGetValue(weapon.def, out LinkedList<ThingWithComps> l))
 			{
 				l = new LinkedList<ThingWithComps>();
-				this.StoredWeapons[weapon.def] = l;
+                storage[weapon.def] = l;
 			}
 
 			for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
@@ -304,6 +349,10 @@ namespace WeaponStorage
 				foreach (ThingWithComps t in l)
 					if (this.Allows(t, expectedDef, qualityRange, hpRange, ingredientFilter))
 						++count;
+            foreach (IEnumerable<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                foreach (ThingWithComps t in l)
+                    if (this.Allows(t, expectedDef, qualityRange, hpRange, ingredientFilter))
+                        ++count;
             return count;
         }
 
@@ -364,25 +413,34 @@ namespace WeaponStorage
 
         internal bool TryGetFilteredWeapons(Bill bill, ThingFilter filter, out List<ThingWithComps> gotten)
         {
-            gotten = null;
+            var g = new List<ThingWithComps>();
 			foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in this.StoredWeapons)
 			{
-				if (filter.Allows(kv.Key))
-				{
-					foreach (ThingWithComps weapon in kv.Value)
-					{
-						if (bill.IsFixedOrAllowedIngredient(weapon) && filter.Allows(weapon))
-						{
-							if (gotten == null)
-							{
-								gotten = new List<ThingWithComps>();
-							}
-							gotten.Add(weapon);
-						}
-					}
-				}
-			}
+                GetFilteredWeaponsFromStorage(bill, filter, g, kv);
+            }
+            foreach (KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv in this.StoredBioEncodedWeapons)
+            {
+                GetFilteredWeaponsFromStorage(bill, filter, g, kv);
+            }
+            if (g.Count > 0)
+                gotten = g;
+            else
+                gotten = null;
             return gotten != null;
+        }
+
+        private void GetFilteredWeaponsFromStorage(Bill bill, ThingFilter filter, List<ThingWithComps> gotten, KeyValuePair<ThingDef, LinkedList<ThingWithComps>> kv)
+        {
+            if (filter.Allows(kv.Key))
+            {
+                foreach (ThingWithComps weapon in kv.Value)
+                {
+                    if (bill.IsFixedOrAllowedIngredient(weapon) && filter.Allows(weapon))
+                    {
+                        gotten.Add(weapon);
+                    }
+                }
+            }
         }
 
         internal void ReclaimWeapons(bool force = false)
@@ -444,7 +502,9 @@ namespace WeaponStorage
                 this.temp = new List<ThingWithComps>();
 				foreach (IEnumerable<ThingWithComps> l in this.StoredWeapons.Values)
 					this.temp.AddRange(l);
-				if (this.forceAddedWeapons == null)
+                foreach (IEnumerable<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                    this.temp.AddRange(l);
+                if (this.forceAddedWeapons == null)
 					this.forceAddedWeapons = new List<Thing>(0);
             }
 
@@ -456,11 +516,15 @@ namespace WeaponStorage
 			if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
                 this.StoredWeapons.Clear();
+                this.StoredBioEncodedWeapons.Clear();
                 if (this.temp != null)
                 {
                     foreach (ThingWithComps t in this.temp)
                     {
-                        this.AddToSortedList(t);
+                        if (EquipmentUtility.IsBiocoded(t))
+                            this.AddToSortedList(t, this.StoredBioEncodedWeapons);
+                        else
+                            this.AddToSortedList(t, this.StoredWeapons);
                     }
                 }
             }
@@ -491,7 +555,7 @@ namespace WeaponStorage
             sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.Count".Translate());
             sb.Append(": ");
-            sb.Append(this.StoredWeapons.Count);
+            sb.Append(this.Count);
             sb.Append(Environment.NewLine);
             sb.Append("WeaponStorage.IncludeInTradeDeals".Translate());
             sb.Append(": ");
@@ -499,25 +563,39 @@ namespace WeaponStorage
             return sb.ToString();
         }
 
-        public IEnumerable<ThingWithComps> AllWeapons
+        public IEnumerable<ThingWithComps> GetWeapons(bool includeBioencoded)
         {
-            get
-            {
-				foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
-					foreach (ThingWithComps t in l)
-						yield return t;
-            }
-		}
+			foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
+				foreach (ThingWithComps t in l)
+					yield return t;
+            if (includeBioencoded)
+                foreach (LinkedList<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                    foreach (ThingWithComps t in l)
+                        yield return t;
+        }
 
-		/// <summary>
-		/// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
-		/// </summary>
-		public bool Remove(ThingWithComps weapon)
+        public IEnumerable<ThingWithComps> GetBioEncodedWeapons()
+        {
+            foreach (LinkedList<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                foreach (ThingWithComps t in l)
+                    yield return t;
+        }
+
+        /// <summary>
+        /// METHOD SIGNATURE CANNOT BE CHANGED AS MENDING PATCH USES THIS METHOD
+        /// </summary>
+        public bool Remove(ThingWithComps weapon)
         {
             try
             {
-				StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> weapons);
-				weapons.Remove(weapon);
+                if (!this.StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> weapons) &&
+                    !this.StoredBioEncodedWeapons.TryGetValue(weapon.def, out weapons))
+                {
+                    return false;
+                }
+
+                if (weapons?.Remove(weapon) == false)
+                    return false;
 
 				if (weapon.Spawned ||
 					this.DropThing(weapon))
@@ -540,9 +618,12 @@ namespace WeaponStorage
 #if DEBUG
             Log.Warning(this.GetType().Name + ".RemoveNoDrop " + thing.Label);
 #endif
-			if (this.StoredWeapons.TryGetValue(thing.def, out LinkedList<ThingWithComps> l))
-				return l.Remove(thing);
-			return false;
+            if (!this.StoredWeapons.TryGetValue(thing.def, out LinkedList<ThingWithComps> l) &&
+                !this.StoredBioEncodedWeapons.TryGetValue(thing.def, out l))
+            {
+                return false;
+            }
+            return l.Remove(thing);
         }
 
         public override void TickLong()
@@ -560,29 +641,14 @@ namespace WeaponStorage
                 WorldComp.SortWeaponStoragesToUse();
 
                 List<ThingWithComps> removed = new List<ThingWithComps>();
-				LinkedListNode<ThingWithComps> n;
-				foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
-				{
-					n = l.First;
-					while (n != null)
-					{
-						var next = n.Next;
-						if (!base.settings.AllowedToAccept(n.Value))
-						{
-							removed.Add(n.Value);
-							l.Remove(n);
-						}
-						n = next;
-					}
-
-					foreach (ThingWithComps t in removed)
-					{
-						if (!WorldComp.Add(t))
-						{
-							this.DropThing(t);
-						}
-					}
-				}
+                foreach (LinkedList<ThingWithComps> l in this.StoredWeapons.Values)
+                {
+                    this.CullStorage(removed, l);
+                }
+                foreach (LinkedList<ThingWithComps> l in this.StoredBioEncodedWeapons.Values)
+                {
+                    this.CullStorage(removed, l);
+                }
             }
 
 			if (this.forceAddedWeapons != null && this.forceAddedWeapons.Count > 0)
@@ -593,6 +659,30 @@ namespace WeaponStorage
 				this.forceAddedWeapons = null;
 			}
         }
+
+        private void CullStorage(List<ThingWithComps> removed, LinkedList<ThingWithComps> l)
+        {
+            LinkedListNode<ThingWithComps> n = l.First;
+            while (n != null)
+            {
+                var next = n.Next;
+                if (!base.settings.AllowedToAccept(n.Value))
+                {
+                    removed.Add(n.Value);
+                    l.Remove(n);
+                }
+                n = next;
+            }
+
+            foreach (ThingWithComps t in removed)
+            {
+                if (!WorldComp.Add(t))
+                {
+                    this.DropThing(t);
+                }
+            }
+        }
+
         #region Gizmos
         public override IEnumerable<Gizmo> GetGizmos()
         {
