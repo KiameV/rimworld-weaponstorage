@@ -42,6 +42,10 @@ namespace WeaponStorage
 									show = true;
 								}
 							}
+                            if (show)
+                            {
+                                show = pawn.equipment.Primary != weapon;
+                            }
 
 							if (show)
 							{
@@ -77,9 +81,9 @@ namespace WeaponStorage
 										delegate
 										{
 											if (WorldComp.TryRemoveWeapon(d, f, false, out ThingWithComps weapon))
-											{
+                                            {
                                                 HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, null);
-												HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
+                                                HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
                                                 f.UpdateDefCache(d);
 											}
 										}, "WeaponStorage.EquipShared"));

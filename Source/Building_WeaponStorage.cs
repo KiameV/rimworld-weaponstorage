@@ -336,22 +336,19 @@ namespace WeaponStorage
 
             if (weapon.TryGetQuality(out QualityCategory weaponQuality))
             {
-                l.AddFirst(weapon);
-                return;
-            }
-
-			for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
-            {
-				if (n.Value.TryGetQuality(out QualityCategory currentQuality))
-				{
-					if ((weaponQuality > currentQuality) ||
-						(weaponQuality == currentQuality &&
-							weapon.HitPoints >= n.Value.HitPoints))
-					{
-						l.AddBefore(n, weapon);
-						return;
-					}
-				}
+                for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
+                {
+                    if (n.Value.TryGetQuality(out QualityCategory currentQuality))
+                    {
+                        if ((weaponQuality > currentQuality) ||
+                            (weaponQuality == currentQuality &&
+                             weapon.HitPoints >= n.Value.HitPoints))
+                        {
+                            l.AddBefore(n, weapon);
+                            return;
+                        }
+                    }
+                }
             }
             l.AddLast(weapon);
         }

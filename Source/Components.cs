@@ -85,7 +85,10 @@ namespace WeaponStorage
 			{
 				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
                 {
-                    return ws.AddWeapon(t);
+                    if (ws.AddWeapon(t))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
