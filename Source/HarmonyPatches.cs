@@ -57,22 +57,37 @@ namespace WeaponStorage
                 return;
 
             pawn.equipment.Remove(weapon);
+
             if (c != null && c.Contains(weapon))
             {
                 c.Add(weapon);
+                return;
             }
 
-            if (!WorldComp.Add(weapon) &&
-                !BuildingUtil.DropSingleThing(weapon, pawn.Position, pawn.Map, false))
+            if (WorldComp.Add(weapon))
+            {
+                return;
+            }
+
+            if (!BuildingUtil.DropSingleThing(weapon, pawn.Position, pawn.Map, false))
             {
                 Log.Warning("Failed to drop " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "].");
             }
         }
 
+        public static void EquipWeapon(ThingWithComps weapon, Pawn pawn)
+        {
+            WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c);
+            EquipWeapon(weapon, pawn, c);
+        }
+
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
         {
-            UnequipPrimaryWeapon(pawn, c);
-            pawn.equipment.AddEquipment(weapon);
+            if (pawn.equipment?.Primary != weapon)
+            {
+                UnequipPrimaryWeapon(pawn, c);
+                pawn.equipment.AddEquipment(weapon);
+            }
         }
 
         internal static bool EquipRanged(AssignedWeaponContainer c)
@@ -163,7 +178,7 @@ namespace WeaponStorage
                 pawn.def.race.Humanlike)
             {
                 if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c) &&
-                    pawn.equipment.Primary == null)
+                    pawn.equipment?.Primary == null)
                 {
                     if (c.TryGetLastThingUsed(pawn, out ThingWithComps w))
                     {
@@ -404,7 +419,7 @@ namespace WeaponStorage
             {
                 if (WorldComp.Add(__state.Weapon))
                 {
-                    __instance.equipment.Remove(__state.Weapon);
+                    __instance.equipment?.Remove(__state.Weapon);
                 }
 
                 if (WorldComp.AssignedWeapons.TryGetValue(__instance, out AssignedWeaponContainer c))
@@ -470,7 +485,7 @@ namespace WeaponStorage
         }
     }
 
-    /*[HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
+    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
     static class Patch_Pawn_EquipmentTracker_TryDropEquipment
     {
         [HarmonyPriority(Priority.First)]
@@ -523,7 +538,7 @@ namespace WeaponStorage
                 }
             }
         }
-    }*/
+    }
 
     [HarmonyPatch(typeof(Pawn_EquipmentTracker), "MakeRoomFor")]
     static class Patch_Pawn_EquipmentTracker_MakeRoomFor
