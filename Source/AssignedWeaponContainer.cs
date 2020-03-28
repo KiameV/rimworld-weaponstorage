@@ -75,15 +75,13 @@ namespace WeaponStorage
 #endif
         }
 
-        public bool Add(ThingWithComps weapon)
+        public void Add(ThingWithComps weapon)
         {
             if (!this.Contains(weapon))
             {
                 this.weapons.Add(weapon);
                 this.weaponIds.Add(weapon.thingIDNumber);
-                return true;
             }
-            return false;
         }
 
         public bool Contains(ThingWithComps weapon)

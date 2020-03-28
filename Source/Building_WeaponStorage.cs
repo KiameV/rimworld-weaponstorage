@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using UnityEngine;
 using Verse;
+using WeaponStorage.UI;
 
 namespace WeaponStorage
 {
@@ -33,9 +34,16 @@ namespace WeaponStorage
 		{
 			if (this.StoredWeapons.TryGetValue(def, out LinkedList<ThingWithComps> l))
 			{
-				foreach (ThingWithComps t in l)
-					if (filter.Allows(t))
-						return true;
+                if (l == null)
+                {
+                    this.StoredWeapons.Remove(def);
+                }
+                else
+                {
+                    foreach (ThingWithComps t in l)
+                        if (filter.Allows(t))
+                            return true;
+                }
             }
             // Do not include bio incoded here
             return false;
@@ -61,6 +69,17 @@ namespace WeaponStorage
                 Log.Warning("Adding Dresser " + this.Label + " to " + r.Label);
 #endif
                 r.Add(this);
+            }
+
+            if (WorldComp.AssignedWeapons.Count == 0)
+            {
+                foreach(var p in Util.GetPawns(true))
+                {
+                    AssignedWeaponContainer a = new AssignedWeaponContainer() { Pawn = p.Pawn };
+                    if (p.Pawn.equipment.Primary != null)
+                        a.Add(p.Pawn.equipment.Primary);
+                    WorldComp.AssignedWeapons.Add(p.Pawn, a);
+                }
             }
         }
 
@@ -262,22 +281,15 @@ namespace WeaponStorage
 
 		private bool Contains(ThingWithComps t)
 		{
-            LinkedList<ThingWithComps> l;
-            if (t != null)
-            {
-                if (EquipmentUtility.IsBiocoded(t))
-                {
-                    if (this.StoredBioEncodedWeapons.TryGetValue(t.def, out l))
-                        return l.Contains(t);
-                }
-                else
-                {
-                    if (this.StoredWeapons.TryGetValue(t.def, out l))
-                        return l.Contains(t);
-                }
-            }
-			return false;
+            return this.Contains(t, (EquipmentUtility.IsBiocoded(t)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
 		}
+
+        private bool Contains(ThingWithComps t, Dictionary<ThingDef, LinkedList<ThingWithComps>> storage)
+        {
+            if (t != null && storage.TryGetValue(t.def, out LinkedList<ThingWithComps> l))
+                return l.Contains(t);
+            return false;
+        }
 
 		/*internal void AddWeapons(IEnumerable<ThingWithComps> weapons)
         {
@@ -292,26 +304,21 @@ namespace WeaponStorage
 
 		internal bool AddWeapon(ThingWithComps weapon)
         {
-            if (weapon != null)
+            if (weapon != null &&
+                this.settings.AllowedToAccept(weapon))
             {
-                if (this.settings.AllowedToAccept(weapon))
+                if (weapon.Spawned)
                 {
-                    if (weapon.Spawned)
-                    {
-                        weapon.DeSpawn();
-                    }
+                    weapon.DeSpawn();
+                } 
 
-                    if (CombatExtendedUtil.AddAmmo(weapon))
-                    {
-                        return true;
-                    }
-                    if (!this.Contains(weapon))
-                    {
-                        var d = (EquipmentUtility.IsBiocoded(weapon)) ? this.StoredBioEncodedWeapons : this.StoredWeapons;
-                        this.AddToSortedList(weapon, d);
-                    }
+                if (CombatExtendedUtil.AddAmmo(weapon))
+                {
                     return true;
                 }
+
+                this.AddToSortedList(weapon, (EquipmentUtility.IsBiocoded(weapon)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
+                return true;
             }
             return false;
         }
@@ -322,13 +329,20 @@ namespace WeaponStorage
 			if (!storage.TryGetValue(weapon.def, out LinkedList<ThingWithComps> l))
 			{
 				l = new LinkedList<ThingWithComps>();
+                l.AddFirst(weapon);
                 storage[weapon.def] = l;
+                return;
 			}
+
+            if (weapon.TryGetQuality(out QualityCategory weaponQuality))
+            {
+                l.AddFirst(weapon);
+                return;
+            }
 
 			for (LinkedListNode<ThingWithComps> n = l.First; n != null; n = n.Next)
             {
-				if (weapon.TryGetQuality(out QualityCategory weaponQuality) &&
-					n.Value.TryGetQuality(out QualityCategory currentQuality))
+				if (n.Value.TryGetQuality(out QualityCategory currentQuality))
 				{
 					if ((weaponQuality > currentQuality) ||
 						(weaponQuality == currentQuality &&
@@ -634,7 +648,7 @@ namespace WeaponStorage
                 this.HandleThingsOnTop();
             }
 
-            if (!this.AreStorageSettingsEqual())
+            /*if (!this.AreStorageSettingsEqual())
             {
                 this.UpdatePreviousStorageFilter();
 
@@ -649,12 +663,18 @@ namespace WeaponStorage
                 {
                     this.CullStorage(removed, l);
                 }
-            }
+            }*/
 
 			if (this.forceAddedWeapons != null && this.forceAddedWeapons.Count > 0)
 			{
-				foreach (Thing t in this.forceAddedWeapons)
-					this.DropThing(t);
+                foreach (Thing t in this.forceAddedWeapons)
+                {
+                    try
+                    {
+                        this.DropThing(t);
+                    }
+                    catch { }
+                }
 				this.forceAddedWeapons.Clear();
 				this.forceAddedWeapons = null;
 			}

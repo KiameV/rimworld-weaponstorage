@@ -106,7 +106,6 @@ namespace WeaponStorage
 				{
 					if (ws.TryRemoveWeapon(def, filter, includeBioencoded, out weapon))
 						return true;
-					break;
 				}
 			}
 			weapon = null;

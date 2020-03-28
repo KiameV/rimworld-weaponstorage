@@ -3,6 +3,7 @@ using RimWorld;
 using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Verse;
 using Verse.AI;
@@ -51,51 +52,26 @@ namespace WeaponStorage
     {
         public static void UnequipPrimaryWeapon(Pawn pawn, AssignedWeaponContainer c)
         {
-            ThingWithComps primary = pawn.equipment.Primary;
-            pawn.equipment.Remove(primary);
-            if (pawn.equipment.Primary != null)
-            {
-                Log.Warning("Failed to unequip " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "].");
+            ThingWithComps weapon = pawn?.equipment?.Primary;
+            if (weapon == null)
                 return;
-            }
-            if (c == null)
+
+            pawn.equipment.Remove(weapon);
+            if (c != null && c.Contains(weapon))
             {
-                WorldComp.Add(primary);
+                c.Add(weapon);
             }
-            else
-                c.Add(primary);
+
+            if (!WorldComp.Add(weapon) &&
+                !BuildingUtil.DropSingleThing(weapon, pawn.Position, pawn.Map, false))
+            {
+                Log.Warning("Failed to drop " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "].");
+            }
         }
 
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
         {
-            ThingWithComps primary = pawn.equipment.Primary;
-            if (primary != null)
-            {
-                pawn.equipment.Remove(primary);
-                if (pawn.equipment.Primary != null)
-                {
-                    // In case the primary weapon is not removed
-                    if (weapon.Spawned == false)
-                    {
-                        if (c == null)
-                        {
-                            WorldComp.Add(weapon);
-                        }
-                        else if (c.Add(weapon))
-                        {
-                            c.Remove(pawn.equipment.Primary);
-                        }
-                    }
-                    Log.Warning("Failed to replace " + pawn.Name.ToStringShort + "'s primary weapon [" + pawn.equipment.Primary.Label + "] with [" + weapon.Label + "].");
-                    return;
-                }
-                if (c == null)
-                {
-                    WorldComp.Add(primary);
-                }
-                else
-                    c.Add(primary);
-            }
+            UnequipPrimaryWeapon(pawn, c);
             pawn.equipment.AddEquipment(weapon);
         }
 
@@ -145,42 +121,32 @@ namespace WeaponStorage
     [HarmonyPatch(typeof(Pawn_HealthTracker), "MakeDowned")]
     static class Patch_Pawn_HealthTracker_MakeDowned
     {
-        [HarmonyPriority(Priority.First)]
-        static void Prefix(Pawn_HealthTracker __instance)
+        private static readonly FieldInfo pawnFI = typeof(Pawn_HealthTracker).GetField("pawn", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        /*struct State
         {
-            Pawn pawn = (Pawn)__instance.GetType().GetField(
-                "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
-#if DOWNED
-            Log.Warning("Begin MakeDowned.Postfix: " + pawn.Name.ToStringShort);
-#endif
-            if (pawn != null &&
+            public readonly Pawn Pawn;
+            public readonly ThingWithComps Weapon;
+            public State(Pawn pawn)
+            {
+                this.Pawn = pawn;
+                this.Weapon = pawn.equipment.Primary;
+            }
+        }*/
+
+        [HarmonyPriority(Priority.First)]
+        static void Prefix(Pawn_HealthTracker __instance, ref ThingWithComps __state)
+        {
+            if (pawnFI.GetValue(__instance) is Pawn pawn &&
                 !__instance.Downed &&
                 pawn.IsColonist &&
                 pawn.equipment?.Primary != null)
             {
-#if DOWNED
-                Log.Message("    Primary: " + ((primary != null) ? primary.Label : "<null>"));
-#endif
                 if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
                 {
-#if DOWNED
-                    Log.Message("    Assigned Weapons Count: " + c.Weapons.Count);
-                    foreach (ThingWithComps w in c.Weapons)
-                    {
-                        Log.Message("        " + w.Label);
-                    }
-#endif
-                    pawn.equipment.Remove(pawn.equipment.Primary);
-                }
-                else
-                {
-                    if (WorldComp.Add(pawn.equipment.Primary))
-                        pawn.equipment.Remove(pawn.equipment.Primary);
+                    HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, c);
                 }
             }
-#if DOWNED
-            Log.Warning("End MakeDowned.Prefix: " + pawn.Name.ToStringShort);
-#endif
         }
     }
 
@@ -253,7 +219,7 @@ namespace WeaponStorage
         public static IEnumerable<Thing> EmptyWeaponStorages(Map map)
         {
             List<Thing> l = new List<Thing>();
-            foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
+            foreach (Building_WeaponStorage ws in WorldComp.GetWeaponStorages(map))
             {
                 if (ws.Map == map && ws.Spawned && ws.IncludeInTradeDeals)
                 {
@@ -269,7 +235,7 @@ namespace WeaponStorage
 
         public static void ReclaimWeapons()
         {
-            foreach (Building_WeaponStorage ws in WorldComp.WeaponStoragesToUse)
+            foreach (Building_WeaponStorage ws in WorldComp.GetWeaponStorages(null))
             {
                 if (ws.Map != null && ws.Spawned)
                 {
@@ -354,7 +320,7 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Postfix(Lord lord)
         {
-            foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+            foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(lord.Map))
             {
                 s.ReclaimWeapons();
             }
@@ -374,7 +340,7 @@ namespace WeaponStorage
                 List<Pawn> p = new List<Pawn>(pawns);
                 if (p.Count > 0)
                 {
-                    foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+                    foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
                     {
                         s.ReclaimWeapons();
                     }
@@ -391,7 +357,8 @@ namespace WeaponStorage
         static void Postfix(ref int __result, RecipeWorkerCounter __instance, Bill_Production bill)
         {
             List<ThingDefCountClass> products = __instance.recipe.products;
-            if (WorldComp.WeaponStoragesToUse.Count > 0 && products != null)
+            var storages = WorldComp.GetWeaponStorages(bill?.Map);
+            if (storages.Count() > 0 && products != null)
             {
                 foreach (ThingDefCountClass product in products)
                 {
@@ -503,7 +470,7 @@ namespace WeaponStorage
         }
     }
 
-    [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
+    /*[HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]
     static class Patch_Pawn_EquipmentTracker_TryDropEquipment
     {
         [HarmonyPriority(Priority.First)]
@@ -556,7 +523,7 @@ namespace WeaponStorage
                 }
             }
         }
-    }
+    }*/
 
     [HarmonyPatch(typeof(Pawn_EquipmentTracker), "MakeRoomFor")]
     static class Patch_Pawn_EquipmentTracker_MakeRoomFor

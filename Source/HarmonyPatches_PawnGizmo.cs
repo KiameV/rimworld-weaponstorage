@@ -78,6 +78,7 @@ namespace WeaponStorage
 										{
 											if (WorldComp.TryRemoveWeapon(d, f, false, out ThingWithComps weapon))
 											{
+                                                HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, null);
 												HarmonyPatchUtil.EquipWeapon(weapon, pawn, null);
                                                 f.UpdateDefCache(d);
 											}

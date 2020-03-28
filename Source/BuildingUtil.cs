@@ -52,6 +52,11 @@ namespace WeaponStorage
                 }
                 return DropThing(toDrop, toDrop.stackCount, from, map, null, makeForbidden);
             }
+            catch(Exception e)
+            {
+                Log.Warning($"failed to drop {toDrop?.def?.defName}\n{e.Message}");
+                return true;
+            }
             finally
             {
                 from.AllowAdds = true;

@@ -62,7 +62,7 @@ namespace WeaponStorage
                         this.foundDefCache.Add(def);
                         continue;
                     }
-                    foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+                    foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
 					{
 						if (s.HasWeapon(this, def))
 						{
@@ -83,7 +83,7 @@ namespace WeaponStorage
                     this.foundDefCache.Add(def);
                     return;
                 }
-                foreach (Building_WeaponStorage s in WorldComp.WeaponStoragesToUse)
+                foreach (Building_WeaponStorage s in WorldComp.GetWeaponStorages(null))
                 {
                     if (s.HasWeapon(this, def))
                     {
