@@ -82,16 +82,22 @@ namespace MendingWeaponStoragePatch
                     if (bill.ingredientFilter.Allows(t) &&
                         t.HitPoints != t.MaxHitPoints)
                     {
-                        ws.Remove(t);
-                        if (t.Spawned == false)
+                        if (ws.Remove(t))
                         {
-                            Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
-                            __result = false;
+                            if (t.Spawned == false)
+                            {
+                                Log.Error("Failed to spawn weapon-to-mend [" + t.Label + "] from weapon storage [" + ws.Label + "].");
+                                __result = false;
+                            }
+                            else
+                            {
+                                __result = true;
+                                chosen.Add(new ThingCount(t, 1));
+                            }
                         }
                         else
                         {
-                            __result = true;
-                            chosen.Add(new ThingCount(t, 1));
+                            __result = false;
                         }
                         return;
                     }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using UnityEngine;
 using Verse;
@@ -113,6 +114,12 @@ namespace WeaponStorage
                     e.GetType().Name + " " + e.Message + "\n" +
                     e.StackTrace);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool CanAdd(ThingWithComps t)
+        {
+            return t != null && base.settings.AllowedToAccept(t);
         }
 
         private void Dispose()
@@ -304,8 +311,7 @@ namespace WeaponStorage
 
 		internal bool AddWeapon(ThingWithComps weapon)
         {
-            if (weapon != null &&
-                this.settings.AllowedToAccept(weapon))
+            if (this.CanAdd(weapon))
             {
                 if (weapon.Spawned)
                 {
@@ -597,31 +603,45 @@ namespace WeaponStorage
         /// </summary>
         public bool Remove(ThingWithComps weapon)
         {
-            try
+            if (weapon == null)
+                return true;
+
+            if (!EquipmentUtility.IsBiocoded(weapon))
             {
-                if (!this.StoredWeapons.TryGetValue(weapon.def, out LinkedList<ThingWithComps> weapons) &&
-                    !this.StoredBioEncodedWeapons.TryGetValue(weapon.def, out weapons))
+                //Log.Warning("Remove non-biocoded");
+                return this.RemoveFrom(weapon, this.StoredWeapons);
+            }
+            //Log.Warning("Remove biocoded");
+            //foreach (var l in this.StoredBioEncodedWeapons.Values)
+            //    foreach (var w in l)
+            //         Log.Warning("  - " + w.Label);
+            return this.RemoveFrom(weapon, this.StoredBioEncodedWeapons);
+        }
+
+        private bool RemoveFrom(ThingWithComps weapon, Dictionary<ThingDef, LinkedList<ThingWithComps>> storage)
+        {
+            if (weapon == null)
+                return true;
+
+            if (storage.TryGetValue(weapon.def, out var l))
+            {
+                if (l.Remove(weapon))
                 {
-                    return false;
+                    if (!weapon.Spawned &&
+                        !this.DropThing(weapon))
+                    {
+                        Log.Warning($"failed to drop {weapon.Label} from storage {this.Label}");
+                        return false;
+                    }
+                    //else
+                    //    Log.Warning($"could not drop {weapon.Label} in storage {this.Label}");
                 }
-
-                if (weapons?.Remove(weapon) == false)
-                    return false;
-
-				if (weapon.Spawned ||
-					this.DropThing(weapon))
-				{
-					return true;
-				}
+                //else
+                //    Log.Warning($"could not remove {weapon.Label} from storage {this.Label}");
             }
-            catch (Exception e)
-            {
-                Log.Error(
-                    this.GetType().Name + ".Remove(ThingWithComp)\n" +
-                    e.GetType().Name + " " + e.Message + "\n" +
-                    e.StackTrace);
-            }
-            return false;
+            //else
+            //    Log.Warning($"could not find def {weapon.def} in storage {this.Label}");
+            return weapon.Spawned;
         }
 
         public bool RemoveNoDrop(ThingWithComps thing)
@@ -683,7 +703,7 @@ namespace WeaponStorage
             while (n != null)
             {
                 var next = n.Next;
-                if (!base.settings.AllowedToAccept(n.Value))
+                if (!this.CanAdd(n.Value))
                 {
                     removed.Add(n.Value);
                     l.Remove(n);

@@ -60,6 +60,17 @@ namespace WeaponStorage
                     this.weapons.Add(aw.Weapon);
                     this.weaponIds.Add(aw.Weapon.thingIDNumber);
                 }
+
+                if (Scribe.mode == LoadSaveMode.PostLoadInit && Pawn != null)
+                {
+                    foreach (var w in weapons)
+                    {
+                        foreach (Verb v in w.GetComp<CompEquippable>()?.AllVerbs)
+                        {
+                            v.caster = this.Pawn;
+                        }
+                    }
+                }
             }
 
             if (Scribe.mode == LoadSaveMode.Saving || Scribe.mode == LoadSaveMode.PostLoadInit)

@@ -39,6 +39,8 @@
 	<WeaponStorage.PreferredDamageType>Preferred Damage Type</WeaponStorage.PreferredDamageType>
 	<WeaponStorage_None>None</WeaponStorage_None>
 	
+	<WeaponStorage.AllowPawnsToDropWeapon>Allow Pawns To Drop Weapon</WeaponStorage.AllowPawnsToDropWeapon>
+	
 	<!-- Shared Weapons Window -->
 	<WeaponStorage.Name>Name</WeaponStorage.Name>
 	<WeaponStorage.AllowedWeapons>Allowed Weapons</WeaponStorage.AllowedWeapons>

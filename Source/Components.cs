@@ -1,4 +1,5 @@
 ﻿using RimWorld.Planet;
+using System;
 using System.Collections.Generic;
 using Verse;
 
@@ -94,7 +95,22 @@ namespace WeaponStorage
             return false;
         }
 
-		public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, bool includeBioencoded, out ThingWithComps weapon)
+        public static bool CanAdd(ThingWithComps t)
+        {
+            if (t != null)
+            {
+                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+                {
+                    if (ws.CanAdd(t))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, bool includeBioencoded, out ThingWithComps weapon)
 		{
 			if (def != null)
 			{

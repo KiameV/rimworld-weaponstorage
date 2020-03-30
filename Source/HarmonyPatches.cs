@@ -704,4 +704,27 @@ namespace WeaponStorage
             }
         }
     }
+
+    [HarmonyPatch(typeof(FloatMenuMakerMap), "AddHumanlikeOrders")]
+    static class Patch_FloatMenuMakerMap_AddHumanlikeOrders
+    {
+        static void Postfix(Pawn pawn, List<FloatMenuOption> opts)
+        {
+            if (!Settings.AllowPawnsToDropWeapon &&
+                pawn.Faction.IsPlayer && 
+                pawn.RaceProps.Humanlike && 
+                WorldComp.CanAdd(pawn.equipment?.Primary))
+            {
+                var lookingFor = "Drop".Translate(pawn.equipment.Primary.Label, pawn.equipment.Primary);
+                for (int i = 0; i < opts.Count; ++i)
+                {
+                    if (opts[i].Label == lookingFor)
+                    {
+                        opts.RemoveAt(i);
+                        return;
+                    }
+                }
+            }
+        }
+    }
 }
