@@ -491,33 +491,49 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Prefix(ref Pawn __state, ThingWithComps eq)
         {
-            if (eq.def.IsWeapon && eq.holdingOwner != null && eq.holdingOwner.Owner != null)
+            if (eq.def.IsWeapon && eq?.holdingOwner?.Owner is Pawn_EquipmentTracker pet && pet.pawn?.Faction?.IsPlayer == true)
             {
-                if (eq.holdingOwner.Owner is Pawn_EquipmentTracker)
-                {
-                    __state = (eq.holdingOwner.Owner as Pawn_EquipmentTracker).pawn;
-                }
+                __state = pet.pawn;
             }
         }
         [HarmonyPriority(Priority.First)]
         static void Postfix(ref bool __result, ref Pawn __state, ThingWithComps eq)
         {
-            if (eq.def.IsWeapon && __state != null)
+            if (__state != null)
             {
-                if (WorldComp.AssignedWeapons.TryGetValue(__state, out AssignedWeaponContainer c) && 
+                if (WorldComp.AssignedWeapons.TryGetValue(__state, out AssignedWeaponContainer c) &&
                     c.Contains(eq))
                 {
-                    if (c.Remove(eq))
+                    if (!Settings.AllowPawnsToDropWeapon)
                     {
-                        if (eq.def.IsRangedWeapon)
+                        if (!WorldComp.Add(eq))
                         {
-                            if (!HarmonyPatchUtil.EquipRanged(c))
-                                HarmonyPatchUtil.EquipMelee(c);
+                            Log.Warning($"unable to find weapon storage that can hold {eq.ThingID} so it will be dropped.");
+                            WorldComp.Drop(eq);
                         }
-                        else
+                    }
+                    else
+                    {
+                        if (c.Remove(eq))
                         {
-                            if (!HarmonyPatchUtil.EquipMelee(c))
-                                HarmonyPatchUtil.EquipRanged(c);
+                            if (eq.def.IsRangedWeapon)
+                            {
+                                if (!HarmonyPatchUtil.EquipRanged(c))
+                                    HarmonyPatchUtil.EquipMelee(c);
+                            }
+                            else
+                            {
+                                if (!HarmonyPatchUtil.EquipMelee(c))
+                                    HarmonyPatchUtil.EquipRanged(c);
+                            }
+                        }
+                        if (Settings.PlaceDroppedWeaponsInStorage)
+                        {
+                            if (!WorldComp.Add(eq))
+                            {
+                                Log.Warning($"unable to find weapon storage that can hold {eq.ThingID} so it will be dropped.");
+                                WorldComp.Drop(eq);
+                            }
                         }
                     }
                 }
@@ -525,14 +541,12 @@ namespace WeaponStorage
                 {
                     foreach (SharedWeaponFilter swf in WorldComp.SharedWeaponFilter)
                     {
-                        if (swf.AssignedPawns.Contains(__state) && 
-                            swf.Allows(eq))
+                        if (swf.Allows(eq) && 
+                            !WorldComp.Add(eq))
                         {
-                            if (!WorldComp.Add(eq))
-                            {
-                                Log.Warning($"unable to find weapon storage that can hold {eq.ThingID} so it will be dropped.");
-                                WorldComp.Drop(eq);
-                            }
+                            Log.Warning($"unable to find weapon storage that can hold {eq.ThingID} so it will be dropped.");
+                            WorldComp.Drop(eq);
+                            break;
                         }
                     }
                 }

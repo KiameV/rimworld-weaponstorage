@@ -56,6 +56,7 @@ namespace WeaponStorage
         public static float RepairAttachmentUpdateInterval = DEFAULT_REPAIR_UPDATE_INTERVAL;
         private static string repairAttachmentUpdateIntervalBuffer = DEFAULT_REPAIR_UPDATE_INTERVAL.ToString();
         public static bool AllowPawnsToDropWeapon = true;
+        public static bool PlaceDroppedWeaponsInStorage = true;
 
 
         public static long RepairAttachmentUpdateIntervalTicks { get { return (long)(RepairAttachmentUpdateInterval * TimeSpan.TicksPerSecond); } }
@@ -72,6 +73,7 @@ namespace WeaponStorage
             Scribe_Values.Look<bool>(ref AutoSwitchMelee, "WeaponStorage.AutoSwitchMelee", true, false);
             Scribe_Values.Look(ref PreferredDamageType, "WeaponStorage.PreferredDamageType", PreferredDamageTypeEnum.ArmorSharp, false);
             Scribe_Values.Look(ref AllowPawnsToDropWeapon, "WeaponStorage.AllowPawnsToDropWeapon", true, false);
+            Scribe_Values.Look(ref PlaceDroppedWeaponsInStorage, "WeaponStorage.PlaceDroppedWeaponsInStorage", true, false);
         }
 
         public static void DoSettingsWindowContents(Rect rect)
@@ -96,6 +98,9 @@ namespace WeaponStorage
             y += 20;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.AllowPawnsToDropWeapon".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref AllowPawnsToDropWeapon);
+            y += 32;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.PlaceDroppedWeaponsInStorage".Translate());
+            Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref PlaceDroppedWeaponsInStorage);
             y += 32;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.AutoSwitchMeleeForTarget".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref AutoSwitchMelee);

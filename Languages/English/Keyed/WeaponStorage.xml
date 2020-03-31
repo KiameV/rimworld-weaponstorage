@@ -40,6 +40,7 @@
 	<WeaponStorage_None>None</WeaponStorage_None>
 	
 	<WeaponStorage.AllowPawnsToDropWeapon>Allow Pawns To Drop Weapon</WeaponStorage.AllowPawnsToDropWeapon>
+	<WeaponStorage.PlaceDroppedWeaponsInStorage>Place Dropped Weapons In Storage</WeaponStorage.PlaceDroppedWeaponsInStorage>
 	
 	<!-- Shared Weapons Window -->
 	<WeaponStorage.Name>Name</WeaponStorage.Name>
