@@ -55,10 +55,18 @@ namespace WeaponStorage
                     this.weaponIds = new HashSet<int>();
 
                 this.weapons.Clear();
+                this.weaponIds.Clear();
                 foreach (AssignedWeapon aw in this.tmp)
                 {
-                    this.weapons.Add(aw.Weapon);
-                    this.weaponIds.Add(aw.Weapon.thingIDNumber);
+                    if (aw.Weapon == null)
+                    {
+                        Log.Error($"failed to load weapon assigned to {Pawn.Name.ToStringShort}");
+                    }
+                    else
+                    {
+                        this.weapons.Add(aw.Weapon);
+                        this.weaponIds.Add(aw.Weapon.thingIDNumber);
+                    }
                 }
 
                 if (Scribe.mode == LoadSaveMode.PostLoadInit && Pawn != null)
@@ -187,20 +195,28 @@ namespace WeaponStorage
             public ThingWithComps Weapon = null;
             public void ExposeData()
             {
-                Scribe_Values.Look(ref IsEquipped, "isEquipped", false);
-                if (IsEquipped)
+                try
                 {
+                    Scribe_Values.Look(ref IsEquipped, "isEquipped", false);
+                    if (IsEquipped)
+                    {
 #if ASSIGNED_WEAPONS
                     Log.Warning("AssignedWeapon.Expose: " + ((this.Weapon == null) ? "<null>" : Weapon.Label) + " as Reference");
 #endif
-                    Scribe_References.Look(ref Weapon, "weapon");
-                }
-                else
-                {
+                        Scribe_References.Look(ref Weapon, "weapon");
+                    }
+                    else
+                    {
 #if ASSIGNED_WEAPONS
                     Log.Warning("AssignedWeapon.Expose: " + ((this.Weapon == null) ? "<null>" : Weapon.Label) + " as Deep");
 #endif
-                    Scribe_Deep.Look(ref Weapon, "weapon", null);
+                        Scribe_Deep.Look(ref Weapon, "weapon", null);
+                    }
+                }
+                catch
+                {
+                    Weapon = null;
+                    IsEquipped = false;
                 }
             }
         }
