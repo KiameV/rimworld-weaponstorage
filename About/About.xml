@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-    <name>[KV] Weapon Storage - 1.1</name>
+    <name>[KV] Weapon Storage</name>
     <author>Kiame Vivacity</author>
 	<packageId>weaponstorage.kv.rw</packageId>
 	<supportedVersions>
 		<li>1.0</li>
 		<li>1.1</li>
+		<li>1.2</li>
 	</supportedVersions>
 	<url>https://ludeon.com/forums/index.php?topic=35503.0</url>
     <description>Stores weapons.

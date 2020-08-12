@@ -1,4 +1,5 @@
 ﻿using RimWorld;
+using SaveStorageSettingsUtil;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -802,7 +803,7 @@ namespace WeaponStorage
             });
             ++groupKey;
 
-            return SaveStorageSettingsUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
+            return SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
         }
 #endregion
 
