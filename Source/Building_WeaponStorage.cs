@@ -27,7 +27,9 @@ namespace WeaponStorage
 
 		private List<Thing> forceAddedWeapons = null;
 
-		public Building_WeaponStorage()
+        public string Name = "";
+
+        public Building_WeaponStorage()
         {
             this.AllowAdds = true;
 		}
@@ -84,6 +86,8 @@ namespace WeaponStorage
                 }
             }
         }
+
+        public override string Label => (this.Name == "") ? base.Label : this.Name;
 
         public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
         {
@@ -530,8 +534,9 @@ namespace WeaponStorage
             Scribe_Values.Look<bool>(ref this.includeInTradeDeals, "includeInTradeDeals", true, false);
 			Scribe_Values.Look<bool>(ref this.IncludeInSharedWeapons, "includeInSharedWeapons", true, false);
 			Scribe_Collections.Look(ref this.forceAddedWeapons, false, "forceAddedWeapons", LookMode.Deep, new object[0]);
+            Scribe_Values.Look(ref this.Name, "name", "", false);
 
-			if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
+            if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
             {
                 this.StoredWeapons.Clear();
                 this.StoredBioEncodedWeapons.Clear();
@@ -733,6 +738,16 @@ namespace WeaponStorage
                 l = new List<Gizmo>(1);
 
             int groupKey = "WeaponStorage".GetHashCode();
+
+            l.Add(new Command_Action
+            {
+                icon = ContentFinder<Texture2D>.Get("UI/Commands/RenameZone", true),
+                defaultLabel = "CommandRenameZoneLabel".Translate(),
+                action = delegate
+                {
+                    Find.WindowStack.Add(new Dialog_Rename(this));
+                },
+            });
 
             l.Add(new Command_Action()
             {

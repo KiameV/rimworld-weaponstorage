@@ -483,6 +483,14 @@ namespace WeaponStorage
             Log.Warning("End Pawn_EquipmentTracker.AddEquipment");
 #endif
         }
+        static void Postfix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
+        {
+            if (__instance.pawn.Faction == Faction.OfPlayer && WorldComp.HasStorages())
+            {
+                AssignedWeaponContainer aw = WorldComp.CreateOrGetAssignedWeapons(__instance.pawn);
+                aw.Add(newEq);
+            }
+        }
     }
 
     [HarmonyPatch(typeof(Pawn_EquipmentTracker), "TryDropEquipment")]

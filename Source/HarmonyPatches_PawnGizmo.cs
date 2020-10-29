@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Verse;
+using WeaponStorage.UI;
 
 namespace WeaponStorage
 {
@@ -12,87 +13,114 @@ namespace WeaponStorage
         [HarmonyPatch(typeof(Pawn_DraftController), "GetGizmos")]
         static class Patch_Pawn_DraftController_GetGizmos
         {
+            [HarmonyPriority(Priority.High)]
             static void Postfix(Pawn_DraftController __instance, ref IEnumerable<Gizmo> __result)
             {
                 try
 				{
 					Pawn pawn = __instance.pawn;
-					List<Gizmo> l = null;
-					if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer weapons))
-					{
-						l = new List<Gizmo>();
-						if (__result != null)
-							l.AddRange(__result);
+                    if (pawn.Faction == Faction.OfPlayer)
+                    {
+                        List<Gizmo> l = null;
+                        if (Settings.ShowWeaponStorageButtonForPawns && WorldComp.HasStorages())
+                        {
+                            l = new List<Gizmo>(){
+                                new Command_Action
+                                {
+                                    icon = AssignUI.weaponStorageTexture,
+                                    defaultLabel = "WeaponStorage.UseWeaponStorage".Translate(),
+                                    activateSound = SoundDef.Named("Click"),
+                                    action = delegate
+                                    {
+                                        Find.WindowStack.Add(new AssignUI(null, pawn));
+                                    }
+                                }
+                            };
+                            l.AddRange(__result);
+                        }
 
-                        //if (pawn.equipment.Primary != null)
-                        //    l.Add(CreateUnequipGizmo(pawn, weapons));
-
-						foreach (ThingWithComps weapon in weapons.Weapons)
-						{
-							bool isTool = Settings.IsTool(weapon);
-							bool show = false;
-							if (pawn.Drafted)
-							{
-								show = true;
-							}
-							else // Not drafted
-							{
-								if (isTool || Settings.ShowWeaponsWhenNotDrafted)
-								{
-									show = true;
-								}
-							}
-                            if (show)
+                        if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer weapons))
+                        {
+                            if (l == null)
                             {
-                                show = pawn.equipment.Primary != weapon;
+                                l = new List<Gizmo>();
+                                l.AddRange(__result);
+                            }
+                            //if (pawn.equipment.Primary != null)
+                            //    l.Add(CreateUnequipGizmo(pawn, weapons));
+
+                            foreach (ThingWithComps weapon in weapons.Weapons)
+                            {
+                                bool isTool = Settings.IsTool(weapon);
+                                bool show = false;
+                                if (pawn.Drafted)
+                                {
+                                    show = true;
+                                }
+                                else // Not drafted
+                                {
+                                    if (isTool || Settings.ShowWeaponsWhenNotDrafted)
+                                    {
+                                        show = true;
+                                    }
+                                }
+                                if (show)
+                                {
+                                    show = pawn.equipment.Primary != weapon;
+                                }
+
+                                if (show)
+                                {
+                                    l.Add(CreateEquipWeaponGizmo(weapon.def, pawn,
+                                        delegate
+                                        {
+                                            HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
+
+                                            weapons.SetLastThingUsed(pawn, weapon, false);
+                                        }));
+                                }
+                            }
+                        }
+
+                        foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
+                        {
+                            if (l == null)
+                            {
+                                l = new List<Gizmo>();
+                                l.AddRange(__result);
                             }
 
-							if (show)
-							{
-								l.Add(CreateEquipWeaponGizmo(weapon.def, pawn,
-									delegate
-									{
-										HarmonyPatchUtil.EquipWeapon(weapon, pawn, weapons);
+                            f.UpdateFoundDefCache();
+                            if (f.AssignedPawns.Contains(pawn))
+                            {
+                                if (l == null)
+                                {
+                                    l = new List<Gizmo>();
+                                    if (__result != null)
+                                        l.AddRange(__result);
+                                }
 
-										weapons.SetLastThingUsed(pawn, weapon, false);
-									}));
-							}
-						}
-					}
-
-					foreach (SharedWeaponFilter f in WorldComp.SharedWeaponFilter)
-					{
-						f.UpdateFoundDefCache();
-						if (f.AssignedPawns.Contains(pawn))
-						{
-							if (l == null)
-							{
-								l = new List<Gizmo>();
-								if (__result != null)
-									l.AddRange(__result);
-							}
-
-							foreach (ThingDef d in f.AllowedDefs)
-							{
-								if (d != pawn.equipment.Primary?.def &&
-                                    f.FoundDefCacheContains(d))
-								{
-									l.Add(CreateEquipWeaponGizmo(d, pawn,
-										delegate
-										{
-											if (WorldComp.TryRemoveWeapon(d, f, false, out ThingWithComps weapon))
+                                foreach (ThingDef d in f.AllowedDefs)
+                                {
+                                    if (d != pawn.equipment.Primary?.def &&
+                                        f.FoundDefCacheContains(d))
+                                    {
+                                        l.Add(CreateEquipWeaponGizmo(d, pawn,
+                                            delegate
                                             {
-                                                HarmonyPatchUtil.EquipWeapon(weapon, pawn);
-                                                f.UpdateDefCache(d);
-											}
-										}, "WeaponStorage.EquipShared"));
-								}
-							}
-						}
-					}
-
-					if (l != null)
-						__result = l;
+                                                if (WorldComp.TryRemoveWeapon(d, f, false, out ThingWithComps weapon))
+                                                {
+                                                    HarmonyPatchUtil.EquipWeapon(weapon, pawn);
+                                                    f.UpdateDefCache(d);
+                                                }
+                                            }, "WeaponStorage.EquipShared"));
+                                    }
+                                }
+                            }
+                        }
+                        if (l != null)
+                            __result = l;
+                    }
 				}
                 catch (Exception e)
                 {

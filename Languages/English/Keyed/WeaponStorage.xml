@@ -42,6 +42,8 @@
 	<WeaponStorage.AllowPawnsToDropWeapon>Allow Pawns To Drop Weapon</WeaponStorage.AllowPawnsToDropWeapon>
 	<WeaponStorage.PlaceDroppedWeaponsInStorage>Place Dropped Weapons In Storage</WeaponStorage.PlaceDroppedWeaponsInStorage>
 	
+	<WeaponStorage.ShowButtonForPawns>Show Weapon Storage for Pawns</WeaponStorage.ShowButtonForPawns>
+	
 	<!-- Shared Weapons Window -->
 	<WeaponStorage.Name>Name</WeaponStorage.Name>
 	<WeaponStorage.AllowedWeapons>Allowed Weapons</WeaponStorage.AllowedWeapons>
@@ -50,6 +52,10 @@
 	<WeaponStorage.SharedWeaponsFilter>Filter</WeaponStorage.SharedWeaponsFilter>
 	
 	<WeaponStorage.Search>Search</WeaponStorage.Search>
+	
+	<!-- Misc -->
+	<WeaponStorage.UseWeaponStorage>Equip From</WeaponStorage.UseWeaponStorage>
+	<WeaponStorage.Select>Select Weapon Storage</WeaponStorage.Select>
 	
 	<!-- Combat Extended -->
 	<WeaponStorage.ManageAmmo>Manage Ammo</WeaponStorage.ManageAmmo>

@@ -57,6 +57,7 @@ namespace WeaponStorage
         private static string repairAttachmentUpdateIntervalBuffer = DEFAULT_REPAIR_UPDATE_INTERVAL.ToString();
         public static bool AllowPawnsToDropWeapon = true;
         public static bool PlaceDroppedWeaponsInStorage = true;
+        public static bool ShowWeaponStorageButtonForPawns = true;
 
 
         public static long RepairAttachmentUpdateIntervalTicks { get { return (long)(RepairAttachmentUpdateInterval * TimeSpan.TicksPerSecond); } }
@@ -74,11 +75,15 @@ namespace WeaponStorage
             Scribe_Values.Look(ref PreferredDamageType, "WeaponStorage.PreferredDamageType", PreferredDamageTypeEnum.ArmorSharp, false);
             Scribe_Values.Look(ref AllowPawnsToDropWeapon, "WeaponStorage.AllowPawnsToDropWeapon", true, false);
             Scribe_Values.Look(ref PlaceDroppedWeaponsInStorage, "WeaponStorage.PlaceDroppedWeaponsInStorage", true, false);
+            Scribe_Values.Look(ref ShowWeaponStorageButtonForPawns, "WeaponStorage.ShowButtonForPawns", true, false);
         }
 
         public static void DoSettingsWindowContents(Rect rect)
         {
             float y = 40;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.ShowButtonForPawns".Translate());
+            Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref ShowWeaponStorageButtonForPawns);
+            y += 32;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.ShowWeaponsWhenNotDrafted".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref ShowWeaponsWhenNotDrafted);
             y += 32;
@@ -94,7 +99,7 @@ namespace WeaponStorage
             NumberInput(ref y, "WeaponStorage.HPPerTick",
                 ref RepairAttachmentMendingSpeed, ref RepairAttachmentMendingSpeedBuffer,
                 DEFAULT_REPAIR_SPEED, 1, 60);
-
+            
             y += 20;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.AllowPawnsToDropWeapon".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref AllowPawnsToDropWeapon);

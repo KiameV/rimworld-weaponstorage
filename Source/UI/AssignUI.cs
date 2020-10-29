@@ -22,6 +22,9 @@ namespace WeaponStorage.UI
 			meleeTexture = ContentFinder<Texture2D>.Get("UI/melee", true);
 			rangedTexture = ContentFinder<Texture2D>.Get("UI/ranged", true);
             ammoTexture = ContentFinder<Texture2D>.Get("UI/ammo", true);
+            nextTexture = ContentFinder<Texture2D>.Get("UI/next", true);
+            previousTexture = ContentFinder<Texture2D>.Get("UI/previous", true);
+            weaponStorageTexture = ContentFinder<Texture2D>.Get("UI/weaponstorage", true);
         }
 
         public static Texture2D DropTexture;
@@ -34,14 +37,18 @@ namespace WeaponStorage.UI
 		public static Texture2D meleeTexture;
 		public static Texture2D rangedTexture;
         public static Texture2D ammoTexture;
+        public static Texture2D nextTexture;
+        public static Texture2D previousTexture;
+        public static Texture2D weaponStorageTexture;
         #endregion
 
-        private readonly Building_WeaponStorage weaponStorage;
+        private Building_WeaponStorage weaponStorage;
 		
         private AssignedWeaponContainer assignedWeapons = null;
+        private int pawnIndex = -1;
 
         private List<ThingWithComps> PossibleWeapons = null;
-		private IEnumerable<SelectablePawns> selectablePawns;
+		private List<SelectablePawns> selectablePawns;
 
         private Vector2 scrollPosition = new Vector2(0, 0);
 
@@ -49,7 +56,7 @@ namespace WeaponStorage.UI
 
 		private float PreviousY = 0;
 
-        public AssignUI(Building_WeaponStorage weaponStorage)
+        public AssignUI(Building_WeaponStorage weaponStorage, Pawn pawn = null)
         {
             this.weaponStorage = weaponStorage;
 
@@ -62,6 +69,7 @@ namespace WeaponStorage.UI
             this.forcePause = true;
 
 			this.selectablePawns = Util.GetPawns(true);
+            this.UpdatePawnIndex(pawn);
         }
 
         public override Vector2 InitialSize
@@ -80,14 +88,10 @@ namespace WeaponStorage.UI
                 this.PossibleWeapons = null;
             }
             
-            int size;
+            int size = (this.weaponStorage != null) ? this.weaponStorage.Count : 0;
             if (this.assignedWeapons != null)
             {
-                size = this.weaponStorage.Count;
-            }
-            else
-            {
-                size = this.assignedWeapons.Count + this.weaponStorage.Count;
+                size += this.assignedWeapons.Count;
             }
 
             this.PossibleWeapons = new List<ThingWithComps>(size);
@@ -98,13 +102,16 @@ namespace WeaponStorage.UI
                     this.PossibleWeapons.Add(w);
                 }
             }
-            foreach (ThingWithComps w in this.weaponStorage.GetWeapons(false))
+            if (this.weaponStorage != null)
             {
-                this.PossibleWeapons.Add(w);
-            }
-            foreach (ThingWithComps w in this.weaponStorage.GetBioEncodedWeapons())
-            {
-                this.PossibleWeapons.Add(w);
+                foreach (ThingWithComps w in this.weaponStorage.GetWeapons(false))
+                {
+                    this.PossibleWeapons.Add(w);
+                }
+                foreach (ThingWithComps w in this.weaponStorage.GetBioEncodedWeapons())
+                {
+                    this.PossibleWeapons.Add(w);
+                }
             }
         }
 
@@ -125,42 +132,95 @@ namespace WeaponStorage.UI
             Text.Font = GameFont.Small;
             try
             {
-                Widgets.Label(new Rect(0, 4, 100, 30), "WeaponStorage.AssignTo".Translate());
-                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "Pawn";
-                if (Widgets.ButtonText(new Rect(120, 0, 200, 30), label))
+                float x = 0, y = 0;
+
+                #region Assign To
+                Widgets.Label(new Rect(x, y + 4, 100, 30), "WeaponStorage.AssignTo".Translate());
+                x += 80;
+                
+                if (this.selectablePawns.Count > 0 &&
+                    GUI.Button(new Rect(x, y, 30, 30), previousTexture))
+                {
+                    --this.pawnIndex;
+                    if (this.pawnIndex < 0 || this.assignedWeapons == null)
+                        this.pawnIndex = this.selectablePawns.Count - 1;
+                    this.LoadAssignedWeapons();
+                }
+                x += 30;
+
+                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "";
+                if (Widgets.ButtonText(new Rect(x, y, 200, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     foreach (SelectablePawns p in this.selectablePawns)
                     {
                         options.Add(new FloatMenuOption(p.LabelAndStats, delegate
                         {
-                            if (!WorldComp.AssignedWeapons.TryGetValue(p.Pawn, out this.assignedWeapons))
-                            {
-								this.assignedWeapons = new AssignedWeaponContainer
-								{
-									Pawn = p.Pawn
-								};
-								if (p.Pawn.equipment.Primary != null)
-                                {
-                                    this.assignedWeapons.Add(p.Pawn.equipment.Primary);
-                                }
-                                WorldComp.AssignedWeapons.Add(p.Pawn, this.assignedWeapons);
-                            }
+                            this.UpdatePawnIndex(p.Pawn);
+                        }, MenuOptionPriority.Default, null, null, 0f, null, null));
+                    }
+                    Find.WindowStack.Add(new FloatMenu(options));
+                }
+                x += 200;
 
+                if (this.selectablePawns.Count > 0 &&
+                    GUI.Button(new Rect(x, y, 30, 30), nextTexture))
+                {
+                    ++this.pawnIndex;
+                    if (this.pawnIndex >= this.selectablePawns.Count || this.assignedWeapons == null)
+                        this.pawnIndex = 0;
+                    this.LoadAssignedWeapons();
+                }
+                x += 40;
+                #endregion
+                y += 40;
+
+                #region Weapon Storage
+                x = 0;
+                Widgets.Label(new Rect(x, y - 4, 100, 60), "WeaponStorage".Translate());
+                x += 80;
+
+                if (WorldComp.HasStorages() &&
+                    GUI.Button(new Rect(x, y, 30, 30), previousTexture))
+                {
+                    this.NextWeaponStorage(-1);
+                }
+                x += 30;
+
+                label = (this.weaponStorage != null) ? this.weaponStorage.Label : "";
+                if (Widgets.ButtonText(new Rect(x, y, 250, 30), label))
+                {
+                    List<FloatMenuOption> options = new List<FloatMenuOption>();
+                    foreach (var ws in WorldComp.GetWeaponStorages())
+                    {
+                        options.Add(new FloatMenuOption(ws.Label, delegate
+                        {
+                            this.weaponStorage = ws;
                             this.RebuildPossibleWeapons();
                         }, MenuOptionPriority.Default, null, null, 0f, null, null));
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
+                x += 250;
 
-                Widgets.Label(new Rect(350, 4, 70, 30), "WeaponStorage.Search".Translate());
-                this.textBuffer = Widgets.TextField(new Rect(425, 0, 100, 30), this.textBuffer);
+                if (WorldComp.HasStorages() &&
+                    GUI.Button(new Rect(x, y, 30, 30), nextTexture))
+                {
+                    this.NextWeaponStorage(1);
+                }
+                x += 40;
+                #endregion
+                y += 40;
+
+                Widgets.Label(new Rect(0, y + 4, 70, 30), "WeaponStorage.Search".Translate());
+                this.textBuffer = Widgets.TextField(new Rect(80, y, 200, 30), this.textBuffer);
+                y += 40;
 
                 const int HEIGHT = 30;
                 const int BUFFER = 2;
 				float width = inRect.width - 100;
-				float x = 0, y = 0;
-				scrollPosition = GUI.BeginScrollView(new Rect(40, 40, width, inRect.height - y - 85), scrollPosition, new Rect(0, 0, width - 16, this.PreviousY));
+				scrollPosition = GUI.BeginScrollView(new Rect(40, y, width, inRect.height - y - 121), scrollPosition, new Rect(0, 0, width - 16, this.PreviousY));
+                x = y = 0;
                 if (this.PossibleWeapons != null)
                 {
                     ThingWithComps weapon;
@@ -168,12 +228,14 @@ namespace WeaponStorage.UI
                     {
 						x = 0;
                         weapon = this.PossibleWeapons[i];
-                        if (!IncludeWeapon(weapon))
-                            continue;
+                        bool isChecked = false;
 
-                        if (this.assignedWeapons != null)
+                        if (this.assignedWeapons != null && this.weaponStorage != null)
                         {
-                            bool isChecked = this.IsAssignedWeapon(i);
+                            isChecked = this.IsAssignedWeapon(i);
+                            if (!isChecked && !this.IncludeWeapon(weapon))
+                                continue;
+
                             bool backup = isChecked;
                             Widgets.Checkbox(x, y, ref isChecked, 20);
 							x += 20 + BUFFER;
@@ -191,8 +253,9 @@ namespace WeaponStorage.UI
                                     }
                                     if (this.assignedWeapons.Remove(weapon))
                                     {
-                                        if (!this.weaponStorage.AddWeapon(weapon) &&
-                                            !WorldComp.Add(weapon))
+                                        if (this.weaponStorage == null ||
+                                            (!this.weaponStorage.AddWeapon(weapon) &&
+                                             !WorldComp.Add(weapon)))
                                         {
                                             BuildingUtil.DropSingleThing(weapon, this.assignedWeapons.Pawn.Position, this.assignedWeapons.Pawn.Map);
                                         }
@@ -204,7 +267,7 @@ namespace WeaponStorage.UI
                                 }
                                 else
                                 {
-                                    if (this.weaponStorage.RemoveNoDrop(weapon))
+                                    if (this.weaponStorage != null && this.weaponStorage.RemoveNoDrop(weapon))
                                     {
                                         this.assignedWeapons.Add(weapon);
                                     }
@@ -218,6 +281,9 @@ namespace WeaponStorage.UI
                             }
                         }
 
+                        if (!isChecked && !this.IncludeWeapon(weapon))
+                            continue;
+
                         Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), weapon);
 						x += HEIGHT + BUFFER;
 
@@ -230,7 +296,8 @@ namespace WeaponStorage.UI
                         Widgets.Label(new Rect(x, y, 250, HEIGHT), weapon.Label);
 						x += 250 + BUFFER;
 
-                        if (Widgets.ButtonImage(new Rect(width - 16 - HEIGHT, y, 20, 20), DropTexture))
+                        if (this.weaponStorage != null && 
+                            Widgets.ButtonImage(new Rect(width - 16 - HEIGHT, y, 20, 20), DropTexture))
                         {
                             if (this.IsAssignedWeapon(i))
                             {
@@ -241,7 +308,7 @@ namespace WeaponStorage.UI
                             }
                             else
                             {
-                                if (!this.weaponStorage.Remove(weapon))
+                                if (this.weaponStorage == null || !this.weaponStorage.Remove(weapon))
                                 {
                                     Log.Error("Unable to remove weapon " + weapon);
                                 }
@@ -270,77 +337,80 @@ namespace WeaponStorage.UI
                         Log.Warning("WeaponStorage DoWindowContents: Display non-checkbox weapons. Count: " + this.weaponStorage.Count);
                     }
 #endif
-                    foreach (ThingWithComps t in this.weaponStorage.GetWeapons(false))
+                    if (this.weaponStorage != null)
                     {
+                        foreach (ThingWithComps t in this.weaponStorage.GetWeapons(false))
+                        {
 #if TRACE
                         if (i > 600)
                         {
                             Log.Warning("-" + t.Label);
                         }
 #endif
-                        if (!IncludeWeapon(t))
-                            continue;
+                            //if (!IncludeWeapon(t))
+                            //    continue;
 
-						x = 34;
-						Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
-						x += HEIGHT + BUFFER;
+                            x = 34;
+                            Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
+                            x += HEIGHT + BUFFER;
 
-                        if (Widgets.InfoCardButton(x, y, t))
+                            if (Widgets.InfoCardButton(x, y, t))
+                            {
+                                Find.WindowStack.Add(new Dialog_InfoCard(t));
+                            }
+                            x += HEIGHT + BUFFER;
+
+                            Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
+                            x += 250 + BUFFER;
+
+                            if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
+                            {
+                                this.weaponStorage.Remove(t);
+                                break;
+                            }
+                            y += HEIGHT + BUFFER;
+                        }
+
+                        foreach (ThingWithComps t in this.weaponStorage.GetBioEncodedWeapons())
                         {
-                            Find.WindowStack.Add(new Dialog_InfoCard(t));
-						}
-						x += HEIGHT + BUFFER;
-
-						Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
-						x += 250 + BUFFER;
-
-						if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
-                        {
-                            this.weaponStorage.Remove(t);
-                            break;
-						}
-						y += HEIGHT + BUFFER;
-					}
-
-                    foreach (ThingWithComps t in this.weaponStorage.GetBioEncodedWeapons())
-                    {
 #if TRACE
                         if (i > 600)
                         {
                             Log.Warning("-" + t.Label);
                         }
 #endif
-                        if (!IncludeWeapon(t))
-                            continue;
+                            //if (!IncludeWeapon(t))
+                            //    continue;
 
-                        x = 34;
-                        Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
-                        x += HEIGHT + BUFFER;
+                            x = 34;
+                            Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);
+                            x += HEIGHT + BUFFER;
 
-                        if (Widgets.InfoCardButton(x, y, t))
-                        {
-                            Find.WindowStack.Add(new Dialog_InfoCard(t));
+                            if (Widgets.InfoCardButton(x, y, t))
+                            {
+                                Find.WindowStack.Add(new Dialog_InfoCard(t));
+                            }
+                            x += HEIGHT + BUFFER;
+
+                            Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
+                            x += 250 + BUFFER;
+
+                            if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
+                            {
+                                this.weaponStorage.Remove(t);
+                                break;
+                            }
+
+                            var biocodableComp = t.GetComp<CompBiocodableWeapon>();
+                            if (biocodableComp?.CodedPawn != null)
+                            {
+                                y += HEIGHT - 4;
+                                Widgets.Label(new Rect(x - 250 - BUFFER, y, 250, 20), biocodableComp.CompInspectStringExtra());
+                                y += 4;
+                            }
+
+                            y += HEIGHT + BUFFER;
                         }
-                        x += HEIGHT + BUFFER;
-
-                        Widgets.Label(new Rect(x, y, 250, HEIGHT), t.Label);
-                        x += 250 + BUFFER;
-
-                        if (Widgets.ButtonImage(new Rect(x + 100, y, 20, 20), DropTexture))
-                        {
-                            this.weaponStorage.Remove(t);
-                            break;
-                        }
-                        
-                        var biocodableComp = t.GetComp<CompBiocodableWeapon>();
-                        if (biocodableComp?.CodedPawn != null)
-                        {
-                            y += HEIGHT - 4;
-                            Widgets.Label(new Rect(x - 250 - BUFFER, y, 250, 20), biocodableComp.CompInspectStringExtra());
-                            y += 4;
-                        }
-
-                        y += HEIGHT + BUFFER;
                     }
                 }
 
@@ -359,6 +429,67 @@ namespace WeaponStorage.UI
                 Text.Anchor = TextAnchor.UpperLeft;
                 GUI.color = Color.white;
             }
+        }
+
+        private void NextWeaponStorage(int increment)
+        {
+            List<Building_WeaponStorage> ws = WorldComp.GetWeaponStorages();
+            if (this.weaponStorage == null)
+            {
+                this.weaponStorage = ws[(increment < 0) ? ws.Count - 1 : 0];
+            }
+            else
+            {
+                for (int i = 0; i < ws.Count; ++i)
+                {
+                    if (this.weaponStorage == ws[i])
+                    {
+                        i += increment;
+                        if (i < 0)
+                            this.weaponStorage = ws[ws.Count - 1];
+                        else if (i >= ws.Count)
+                            this.weaponStorage = ws[0];
+                        else
+                            this.weaponStorage = ws[i];
+                        break;
+                    }
+                }
+            }
+            this.RebuildPossibleWeapons();
+        }
+
+        private void UpdatePawnIndex(Pawn p)
+        {
+            this.pawnIndex = -1;
+            if (p != null)
+            {
+                for (pawnIndex = 0; pawnIndex < this.selectablePawns.Count; ++pawnIndex)
+                {
+                    if (this.selectablePawns[this.pawnIndex].Equals(p))
+                    {
+                        this.LoadAssignedWeapons();
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void LoadAssignedWeapons()
+        {
+            SelectablePawns p = this.selectablePawns[this.pawnIndex];
+            if (!WorldComp.AssignedWeapons.TryGetValue(p.Pawn, out this.assignedWeapons))
+            {
+                this.assignedWeapons = new AssignedWeaponContainer
+                {
+                    Pawn = p.Pawn
+                };
+                if (p.Pawn.equipment.Primary != null)
+                {
+                    this.assignedWeapons.Add(p.Pawn.equipment.Primary);
+                }
+                WorldComp.AssignedWeapons.Add(p.Pawn, this.assignedWeapons);
+            }
+            this.RebuildPossibleWeapons();
         }
 
         private bool IncludeWeapon(ThingWithComps weapon)

@@ -142,15 +142,17 @@ namespace WeaponStorage
             return false;
         }
 
-        public static IEnumerable<Building_WeaponStorage> GetWeaponStorages()
+        public static List<Building_WeaponStorage> GetWeaponStorages()
         {
+            List<Building_WeaponStorage> l = new List<Building_WeaponStorage>(WeaponStoragesToUse.Count);
             foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
             {
                 if (ws.Spawned)
                 {
-                    yield return ws;
+                    l.Add(ws);
                 }
             }
+            return l;
         }
 
         public static IEnumerable<Building_WeaponStorage> GetWeaponStorages(Map map)
@@ -263,5 +265,15 @@ namespace WeaponStorage
 		{
 			WeaponStoragesToUse.Sort((l, r) => l.settings.Priority.CompareTo(r.settings.Priority));
 		}
+
+        public static AssignedWeaponContainer CreateOrGetAssignedWeapons(Pawn pawn)
+        {
+            if (!AssignedWeapons.TryGetValue(pawn, out var aw))
+            {
+                aw = new AssignedWeaponContainer();
+                AssignedWeapons.Add(pawn, aw);
+            }
+            return aw;
+        }
     }
 }
