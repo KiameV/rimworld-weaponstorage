@@ -342,13 +342,16 @@ namespace WeaponStorage.UI
                         foreach (ThingWithComps t in this.weaponStorage.GetWeapons(false))
                         {
 #if TRACE
-                        if (i > 600)
-                        {
-                            Log.Warning("-" + t.Label);
-                        }
+                            if (i > 600)
+                            {
+                                Log.Warning("-" + t.Label);
+                            }
 #endif
                             //if (!IncludeWeapon(t))
                             //    continue;
+
+                            if (!this.IncludeWeapon(t))
+                                continue;
 
                             x = 34;
                             Widgets.ThingIcon(new Rect(x, y, HEIGHT, HEIGHT), t);

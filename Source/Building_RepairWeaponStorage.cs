@@ -218,13 +218,6 @@ namespace WeaponStorage
                 }
                 this.AttachedWeaponStorages.Clear();
                 this.AttachedWeaponStorages = ordered;
-#if DEBUG
-                Log.Warning("CD New Order:");
-                foreach (Building_Dresser d in this.AttachedDressers)
-                {
-                    Log.Warning(" " + d.Label + " " + d.settings.Priority);
-                }
-#endif
             }
         }
 
