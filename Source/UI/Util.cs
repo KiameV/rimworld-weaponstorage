@@ -44,17 +44,26 @@ namespace WeaponStorage.UI
 	{
 		public static List<SelectablePawns> GetPawns(bool excludeNonViolent)
 		{
-			SortedDictionary<string, Pawn> pawns = new SortedDictionary<string, Pawn>();
+			SortedDictionary<string, List<Pawn>> pawns = new SortedDictionary<string, List<Pawn>>();
 			foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
 				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead && p.apparel?.LockedApparel?.Count == 0)
                 {
-                    if (!excludeNonViolent || !p.WorkTagIsDisabled(WorkTags.Violent))
-                        pawns.Add(p.Name.ToStringShort, p);
+					if (!excludeNonViolent || !p.WorkTagIsDisabled(WorkTags.Violent))
+					{
+						string name = p.Name.ToStringShort;
+						if (!pawns.TryGetValue(name, out List<Pawn> ps))
+						{
+							ps = new List<Pawn>();
+							pawns[name] = ps;
+						}
+						ps.Add(p);
+					}
                 }
 
 			List<SelectablePawns> result = new List<SelectablePawns>(pawns.Count);
-			foreach (Pawn p in pawns.Values)
-				result.Add(new SelectablePawns(p));
+			foreach (List<Pawn> ps in pawns.Values)
+				foreach (Pawn p in ps)
+					result.Add(new SelectablePawns(p));
 
 			return result;
 		}
