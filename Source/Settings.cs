@@ -58,6 +58,7 @@ namespace WeaponStorage
         public static bool AllowPawnsToDropWeapon = true;
         public static bool PlaceDroppedWeaponsInStorage = true;
         public static bool ShowWeaponStorageButtonForPawns = true;
+        public static bool EnableAssignWeapons = true;
 
 
         public static long RepairAttachmentUpdateIntervalTicks { get { return (long)(RepairAttachmentUpdateInterval * TimeSpan.TicksPerSecond); } }
@@ -76,6 +77,7 @@ namespace WeaponStorage
             Scribe_Values.Look(ref AllowPawnsToDropWeapon, "WeaponStorage.AllowPawnsToDropWeapon", true, false);
             Scribe_Values.Look(ref PlaceDroppedWeaponsInStorage, "WeaponStorage.PlaceDroppedWeaponsInStorage", true, false);
             Scribe_Values.Look(ref ShowWeaponStorageButtonForPawns, "WeaponStorage.ShowButtonForPawns", true, false);
+            Scribe_Values.Look(ref EnableAssignWeapons, "EnableAssignWeapons", true, false);
         }
 
         public static void DoSettingsWindowContents(Rect rect)
@@ -106,6 +108,10 @@ namespace WeaponStorage
             y += 32;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.PlaceDroppedWeaponsInStorage".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref PlaceDroppedWeaponsInStorage);
+            y += 32;
+            Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.EnableAssignWeapons".Translate());
+            Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref EnableAssignWeapons);
+            Widgets.Label(new Rect(SECOND_COLUMN_X + 50, y, 200, 30), "WeaponStorage.UnassignAllWeaponsFirst".Translate());
             y += 32;
             Widgets.Label(new Rect(0, y, FIRST_COLUMN_WIDTH, 30), "WeaponStorage.AutoSwitchMeleeForTarget".Translate());
             Widgets.Checkbox(new Vector2(SECOND_COLUMN_X, y + 4), ref AutoSwitchMelee);

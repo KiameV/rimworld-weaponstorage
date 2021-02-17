@@ -39,7 +39,7 @@ namespace WeaponStorage
                             l.AddRange(__result);
                         }
 
-                        if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer weapons))
+                        if (WorldComp.TryGetAssignedWeapons(__instance.pawn, out AssignedWeaponContainer weapons))
                         {
                             if (l == null)
                             {

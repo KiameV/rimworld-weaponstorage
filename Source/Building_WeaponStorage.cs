@@ -75,16 +75,7 @@ namespace WeaponStorage
                 r.Add(this);
             }
 
-            if (WorldComp.AssignedWeapons.Count == 0)
-            {
-                foreach(var p in Util.GetPawns(true))
-                {
-                    AssignedWeaponContainer a = new AssignedWeaponContainer() { Pawn = p.Pawn };
-                    if (p.Pawn.equipment.Primary != null)
-                        a.Add(p.Pawn.equipment.Primary);
-                    WorldComp.AssignedWeapons.Add(p.Pawn, a);
-                }
-            }
+            WorldComp.InitializeAssignedWeapons();
         }
 
         public override string Label => (this.Name == "") ? base.Label : this.Name;
@@ -671,6 +662,11 @@ namespace WeaponStorage
                 this.HandleThingsOnTop();
             }
 
+            while (WorldComp.WeaponsToDrop.Count > 0)
+            {
+                this.DropThing(WorldComp.WeaponsToDrop.Pop());
+            }
+
             /*if (!this.AreStorageSettingsEqual())
             {
                 this.UpdatePreviousStorageFilter();
@@ -749,40 +745,59 @@ namespace WeaponStorage
                 },
             });
 
-            l.Add(new Command_Action()
-            {
-                icon = UI.AssignUI.assignweaponsTexture,
-                defaultDesc = "WeaponStorage.AssignWeaponsDesc".Translate(),
-                defaultLabel = "WeaponStorage.AssignWeapons".Translate(),
-                activateSound = SoundDef.Named("Click"),
-                action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); },
-                groupKey = groupKey,
-            });
-            ++groupKey;
-
-			l.Add(new Command_Action()
-			{
-				icon = UI.AssignUI.assignweaponsTexture,
-				defaultDesc = "WeaponStorage.SharedWeaponsDesc".Translate(),
-				defaultLabel = "WeaponStorage.SharedWeapons".Translate(),
-				activateSound = SoundDef.Named("Click"),
-				action = delegate { Find.WindowStack.Add(new UI.SharedWeaponsUI()); },
-				groupKey = groupKey,
-			});
-			++groupKey;
-
-            if (CombatExtendedUtil.HasCombatExtended)
+            if (Settings.EnableAssignWeapons)
             {
                 l.Add(new Command_Action()
                 {
-                    icon = UI.AssignUI.ammoTexture,
-                    defaultDesc = "WeaponStorage.ManageAmmoDesc".Translate(),
-                    defaultLabel = "WeaponStorage.ManageAmmo".Translate(),
+                    icon = UI.AssignUI.assignweaponsTexture,
+                    defaultDesc = "WeaponStorage.AssignWeaponsDesc".Translate(),
+                    defaultLabel = "WeaponStorage.AssignWeapons".Translate(),
                     activateSound = SoundDef.Named("Click"),
-                    action = delegate { Find.WindowStack.Add(new UI.AmmoUI(this)); },
+                    action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); },
+                    groupKey = groupKey,
+                });
+            }
+            else
+            {
+                l.Add(new Command_Action()
+                {
+                    icon = UI.AssignUI.assignweaponsTexture,
+                    defaultDesc = "WeaponStorage".Translate(),
+                    defaultLabel = "WeaponStorage".Translate(),
+                    activateSound = SoundDef.Named("Click"),
+                    action = delegate { Find.WindowStack.Add(new UI.AssignUI(this)); },
+                    groupKey = groupKey,
+                });
+            }
+            ++groupKey;
+
+            if (Settings.EnableAssignWeapons)
+            {
+
+                l.Add(new Command_Action()
+                {
+                    icon = UI.AssignUI.assignweaponsTexture,
+                    defaultDesc = "WeaponStorage.SharedWeaponsDesc".Translate(),
+                    defaultLabel = "WeaponStorage.SharedWeapons".Translate(),
+                    activateSound = SoundDef.Named("Click"),
+                    action = delegate { Find.WindowStack.Add(new UI.SharedWeaponsUI()); },
                     groupKey = groupKey,
                 });
                 ++groupKey;
+
+                if (CombatExtendedUtil.HasCombatExtended)
+                {
+                    l.Add(new Command_Action()
+                    {
+                        icon = UI.AssignUI.ammoTexture,
+                        defaultDesc = "WeaponStorage.ManageAmmoDesc".Translate(),
+                        defaultLabel = "WeaponStorage.ManageAmmo".Translate(),
+                        activateSound = SoundDef.Named("Click"),
+                        action = delegate { Find.WindowStack.Add(new UI.AmmoUI(this)); },
+                        groupKey = groupKey,
+                    });
+                    ++groupKey;
+                }
             }
 
             l.Add(new Command_Action()

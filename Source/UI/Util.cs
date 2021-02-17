@@ -44,6 +44,9 @@ namespace WeaponStorage.UI
 	{
 		public static List<SelectablePawns> GetPawns(bool excludeNonViolent)
 		{
+			if (!Settings.EnableAssignWeapons)
+				return new List<SelectablePawns>(0);
+
 			SortedDictionary<string, List<Pawn>> pawns = new SortedDictionary<string, List<Pawn>>();
 			foreach (Pawn p in PawnsFinder.AllMapsCaravansAndTravelingTransportPods_Alive_Colonists)
 				if (p != null && p.Faction == Faction.OfPlayer && p.def.race.Humanlike && !p.Dead && p.apparel?.LockedApparel?.Count == 0)

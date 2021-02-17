@@ -232,7 +232,7 @@ namespace WeaponStorage
             }
 #endif
             this.OrderAttachedWeaponStorages();
-            foreach (AssignedWeaponContainer c in WorldComp.AssignedWeapons.Values)
+            foreach (AssignedWeaponContainer c in WorldComp.AssignedWeaponContainers)
             {
                 foreach (ThingWithComps w in c.Weapons)
                 {

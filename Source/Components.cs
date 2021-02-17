@@ -2,18 +2,21 @@
 using System;
 using System.Collections.Generic;
 using Verse;
+using WeaponStorage.UI;
 
 namespace WeaponStorage
 {
     public class WorldComp : WorldComponent
-	{
-		public static List<Building_WeaponStorage> WeaponStoragesToUse = new List<Building_WeaponStorage>();
+    {
+        public static List<Building_WeaponStorage> WeaponStoragesToUse = new List<Building_WeaponStorage>();
 
-		public static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
+        private static Dictionary<Pawn, AssignedWeaponContainer> AssignedWeapons = new Dictionary<Pawn, AssignedWeaponContainer>();
 
-		public static List<SharedWeaponFilter> SharedWeaponFilter = new List<SharedWeaponFilter>();
+        public static List<SharedWeaponFilter> SharedWeaponFilter = new List<SharedWeaponFilter>();
 
-		public static ThingDef WeaponStorageDef { get; private set; }
+        public static Stack<ThingWithComps> WeaponsToDrop = new Stack<ThingWithComps>();
+
+        public static ThingDef WeaponStorageDef { get; private set; }
 
         static WorldComp() { WeaponStorageDef = null; }
 
@@ -41,7 +44,7 @@ namespace WeaponStorage
                 {
                     d.building.fixedStorageSettings.filter.SetAllow(w, true);
                     allows = true;
-                    if (w.defName.Equals("Beer") || 
+                    if (w.defName.Equals("Beer") ||
                         w.defName.Equals("WoodLog"))
                     {
                         allows = false;
@@ -61,11 +64,11 @@ namespace WeaponStorage
             }
             AssignedWeapons.Clear();
 
-			SharedWeaponFilter.Clear();
+            SharedWeaponFilter.Clear();
 
-			if (WeaponStoragesToUse == null)
+            if (WeaponStoragesToUse == null)
                 WeaponStoragesToUse = new List<Building_WeaponStorage>();
-			WeaponStoragesToUse.Clear();
+            WeaponStoragesToUse.Clear();
         }
 
         public static void Add(Building_WeaponStorage ws)
@@ -82,9 +85,9 @@ namespace WeaponStorage
 
         public static bool Add(ThingWithComps t)
         {
-			if (t != null)
-			{
-				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+            if (t != null)
+            {
+                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
                 {
                     if (ws.AddWeapon(t))
                     {
@@ -111,9 +114,9 @@ namespace WeaponStorage
         }
 
         public static bool TryRemoveWeapon(ThingDef def, SharedWeaponFilter filter, bool includeBioencoded, out ThingWithComps weapon)
-		{
-			if (def != null)
-			{
+        {
+            if (def != null)
+            {
                 if (CombatExtendedUtil.TryRemoveAmmo(def, 1, out Thing t))
                 {
                     weapon = t as ThingWithComps;
@@ -121,23 +124,23 @@ namespace WeaponStorage
                         return true;
                 }
 
-				foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
-				{
-					if (ws.TryRemoveWeapon(def, filter, includeBioencoded, out weapon))
-						return true;
-				}
-			}
-			weapon = null;
-			return false;
-		}
+                foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+                {
+                    if (ws.TryRemoveWeapon(def, filter, includeBioencoded, out weapon))
+                        return true;
+                }
+            }
+            weapon = null;
+            return false;
+        }
 
         public static bool Drop(ThingWithComps w)
         {
-			foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
-				if (BuildingUtil.DropThing(w, ws, ws.Map))
-				{
-					return true;
-				}
+            foreach (Building_WeaponStorage ws in WeaponStoragesToUse)
+                if (BuildingUtil.DropThing(w, ws, ws.Map))
+                {
+                    return true;
+                }
 
             return false;
         }
@@ -201,13 +204,13 @@ namespace WeaponStorage
 
         public static void Remove(Map map)
         {
-			for (int i = WeaponStoragesToUse.Count - 1; i >= 0; --i)
-			{
-				if (WeaponStoragesToUse[i].Map == map)
-				{
-					WeaponStoragesToUse.RemoveAt(i);
-				}
-			}
+            for (int i = WeaponStoragesToUse.Count - 1; i >= 0; --i)
+            {
+                if (WeaponStoragesToUse[i].Map == map)
+                {
+                    WeaponStoragesToUse.RemoveAt(i);
+                }
+            }
         }
 
         private List<AssignedWeaponContainer> tmp = null;
@@ -221,22 +224,35 @@ namespace WeaponStorage
             }
 
             Scribe_Collections.Look(ref tmp, "assignedWeapons", LookMode.Deep, new object[0]);
-			Scribe_Collections.Look(ref SharedWeaponFilter, "sharedWeaponFilter", LookMode.Deep, new object[0]);
+            Scribe_Collections.Look(ref SharedWeaponFilter, "sharedWeaponFilter", LookMode.Deep, new object[0]);
 
-			if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 foreach (AssignedWeaponContainer a in tmp)
                 {
-                    if (a.Pawn == null || a.Pawn.Dead)
+                    if (!Settings.EnableAssignWeapons)
+                    {
+                        if (a.Weapons != null)
+                        {
+                            foreach (ThingWithComps w in a.Weapons)
+                            {
+                                if (!Add(w))
+                                {
+                                    WeaponsToDrop.Push(w);
+                                }
+                            }
+                        }
+                    }
+                    else if (a.Pawn == null || a.Pawn.Dead)
                     {
                         Log.Warning("Unable to load pawn [" + a.Pawn + "]. Re-storing assigned weapons");
                         if (a.Weapons != null)
                         {
-                            foreach(ThingWithComps w in a.Weapons)
+                            foreach (ThingWithComps w in a.Weapons)
                             {
                                 if (!Add(w))
                                 {
-                                    Drop(w);
+                                    WeaponsToDrop.Push(w);
                                 }
                             }
                         }
@@ -248,7 +264,7 @@ namespace WeaponStorage
                 }
             }
 
-            if (Scribe.mode == LoadSaveMode.Saving || 
+            if (Scribe.mode == LoadSaveMode.Saving ||
                 Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 if (tmp != null)
@@ -256,24 +272,74 @@ namespace WeaponStorage
                     tmp.Clear();
                     tmp = null;
                 }
-				if (SharedWeaponFilter == null)
-					SharedWeaponFilter = new List<SharedWeaponFilter>();
-			}
+                if (SharedWeaponFilter == null)
+                    SharedWeaponFilter = new List<SharedWeaponFilter>();
+            }
         }
 
         public static void SortWeaponStoragesToUse()
-		{
-			WeaponStoragesToUse.Sort((l, r) => l.settings.Priority.CompareTo(r.settings.Priority));
-		}
-
-        public static AssignedWeaponContainer CreateOrGetAssignedWeapons(Pawn pawn)
         {
-            if (!AssignedWeapons.TryGetValue(pawn, out var aw))
+            WeaponStoragesToUse.Sort((l, r) => l.settings.Priority.CompareTo(r.settings.Priority));
+        }
+
+        public static bool CreateOrGetAssignedWeapons(Pawn pawn, out AssignedWeaponContainer aw)
+        {
+            if (!Settings.EnableAssignWeapons)
+            {
+                aw = null;
+                return false;
+            }
+
+            if (!AssignedWeapons.TryGetValue(pawn, out aw))
             {
                 aw = new AssignedWeaponContainer();
                 AssignedWeapons.Add(pawn, aw);
             }
-            return aw;
+            return true;
+        }
+
+        public static void AddAssignedWeapons(Pawn pawn, AssignedWeaponContainer aw)
+        {
+            if (Settings.EnableAssignWeapons)
+                AssignedWeapons[pawn] = aw;
+        }
+
+        public static bool TryGetAssignedWeapons(Pawn pawn, out AssignedWeaponContainer aw)
+        {
+            if (!Settings.EnableAssignWeapons)
+            {
+                aw = null;
+                return false;
+            }
+            return AssignedWeapons.TryGetValue(pawn, out aw);
+        }
+
+        public static bool RemoveAssignedWeapons(Pawn pawn)
+        {
+            return AssignedWeapons.Remove(pawn);
+        }
+
+        public static void InitializeAssignedWeapons()
+        {
+            if (Settings.EnableAssignWeapons && AssignedWeapons.Count == 0)
+            {
+                foreach (var p in Util.GetPawns(true))
+                {
+                    AssignedWeaponContainer a = new AssignedWeaponContainer() { Pawn = p.Pawn };
+                    if (p.Pawn.equipment.Primary != null)
+                        a.Add(p.Pawn.equipment.Primary);
+                    AssignedWeapons.Add(p.Pawn, a);
+                }
+            }
+        }
+
+        public static IEnumerable<AssignedWeaponContainer> AssignedWeaponContainers { 
+            get
+            {
+                if (!Settings.EnableAssignWeapons)
+                    return new List<AssignedWeaponContainer>(0);
+                return AssignedWeapons.Values;
+            }
         }
     }
 }

@@ -134,46 +134,50 @@ namespace WeaponStorage.UI
             {
                 float x = 0, y = 0;
 
-                #region Assign To
-                Widgets.Label(new Rect(x, y + 4, 100, 30), "WeaponStorage.AssignTo".Translate());
-                x += 80;
-                
-                if (this.selectablePawns.Count > 0 &&
-                    GUI.Button(new Rect(x, y, 30, 30), previousTexture))
+                string label = "";
+                if (Settings.EnableAssignWeapons)
                 {
-                    --this.pawnIndex;
-                    if (this.pawnIndex < 0 || this.assignedWeapons == null)
-                        this.pawnIndex = this.selectablePawns.Count - 1;
-                    this.LoadAssignedWeapons();
-                }
-                x += 30;
+                    #region Assign To
+                    Widgets.Label(new Rect(x, y + 4, 100, 30), "WeaponStorage.AssignTo".Translate());
+                    x += 80;
 
-                string label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "";
-                if (Widgets.ButtonText(new Rect(x, y, 200, 30), label))
-                {
-                    List<FloatMenuOption> options = new List<FloatMenuOption>();
-                    foreach (SelectablePawns p in this.selectablePawns)
+                    if (this.selectablePawns.Count > 0 &&
+                        GUI.Button(new Rect(x, y, 30, 30), previousTexture))
                     {
-                        options.Add(new FloatMenuOption(p.LabelAndStats, delegate
-                        {
-                            this.UpdatePawnIndex(p.Pawn);
-                        }, MenuOptionPriority.Default, null, null, 0f, null, null));
+                        --this.pawnIndex;
+                        if (this.pawnIndex < 0 || this.assignedWeapons == null)
+                            this.pawnIndex = this.selectablePawns.Count - 1;
+                        this.LoadAssignedWeapons();
                     }
-                    Find.WindowStack.Add(new FloatMenu(options));
-                }
-                x += 200;
+                    x += 30;
 
-                if (this.selectablePawns.Count > 0 &&
-                    GUI.Button(new Rect(x, y, 30, 30), nextTexture))
-                {
-                    ++this.pawnIndex;
-                    if (this.pawnIndex >= this.selectablePawns.Count || this.assignedWeapons == null)
-                        this.pawnIndex = 0;
-                    this.LoadAssignedWeapons();
+                    label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "";
+                    if (Widgets.ButtonText(new Rect(x, y, 200, 30), label))
+                    {
+                        List<FloatMenuOption> options = new List<FloatMenuOption>();
+                        foreach (SelectablePawns p in this.selectablePawns)
+                        {
+                            options.Add(new FloatMenuOption(p.LabelAndStats, delegate
+                            {
+                                this.UpdatePawnIndex(p.Pawn);
+                            }, MenuOptionPriority.Default, null, null, 0f, null, null));
+                        }
+                        Find.WindowStack.Add(new FloatMenu(options));
+                    }
+                    x += 200;
+
+                    if (this.selectablePawns.Count > 0 &&
+                        GUI.Button(new Rect(x, y, 30, 30), nextTexture))
+                    {
+                        ++this.pawnIndex;
+                        if (this.pawnIndex >= this.selectablePawns.Count || this.assignedWeapons == null)
+                            this.pawnIndex = 0;
+                        this.LoadAssignedWeapons();
+                    }
+                    x += 40;
+                    #endregion
+                    y += 40;
                 }
-                x += 40;
-                #endregion
-                y += 40;
 
                 #region Weapon Storage
                 x = 0;
@@ -480,7 +484,7 @@ namespace WeaponStorage.UI
         private void LoadAssignedWeapons()
         {
             SelectablePawns p = this.selectablePawns[this.pawnIndex];
-            if (!WorldComp.AssignedWeapons.TryGetValue(p.Pawn, out this.assignedWeapons))
+            if (!WorldComp.TryGetAssignedWeapons(p.Pawn, out this.assignedWeapons))
             {
                 this.assignedWeapons = new AssignedWeaponContainer
                 {
@@ -490,7 +494,7 @@ namespace WeaponStorage.UI
                 {
                     this.assignedWeapons.Add(p.Pawn.equipment.Primary);
                 }
-                WorldComp.AssignedWeapons.Add(p.Pawn, this.assignedWeapons);
+                WorldComp.AddAssignedWeapons(p.Pawn, this.assignedWeapons);
             }
             this.RebuildPossibleWeapons();
         }

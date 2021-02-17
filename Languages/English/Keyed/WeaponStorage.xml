@@ -41,6 +41,8 @@
 	
 	<WeaponStorage.AllowPawnsToDropWeapon>Allow Pawns To Drop Weapon</WeaponStorage.AllowPawnsToDropWeapon>
 	<WeaponStorage.PlaceDroppedWeaponsInStorage>Place Dropped Weapons In Storage</WeaponStorage.PlaceDroppedWeaponsInStorage>
+	<WeaponStorage.EnableAssignWeapons>Enable Assign Weapons</WeaponStorage.EnableAssignWeapons>
+	<WeaponStorage.UnassignAllWeaponsFirst>(Unassign All Weapons First!)</WeaponStorage.UnassignAllWeaponsFirst>
 	
 	<WeaponStorage.ShowButtonForPawns>Show Weapon Storage for Pawns</WeaponStorage.ShowButtonForPawns>
 	

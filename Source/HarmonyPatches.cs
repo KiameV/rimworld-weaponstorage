@@ -77,8 +77,8 @@ namespace WeaponStorage
 
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn)
         {
-            WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c);
-            EquipWeapon(weapon, pawn, c);
+            if (WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer c))
+                EquipWeapon(weapon, pawn, c);
         }
 
         public static void EquipWeapon(ThingWithComps weapon, Pawn pawn, AssignedWeaponContainer c)
@@ -123,12 +123,10 @@ namespace WeaponStorage
         static void Postfix(Pawn_DraftController __instance)
         {
             Pawn pawn = __instance.pawn;
-            if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer weapons))
+            if (WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer weapons) && 
+                weapons.TryGetLastThingUsed(pawn, out ThingWithComps w))
             {
-                if (weapons.TryGetLastThingUsed(pawn, out ThingWithComps w))
-                {
-                    HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
-                }
+                HarmonyPatchUtil.EquipWeapon(w, pawn, weapons);
             }
         }
     }
@@ -157,7 +155,7 @@ namespace WeaponStorage
                 pawn.IsColonist &&
                 pawn.equipment?.Primary != null)
             {
-                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
+                if (WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer c))
                 {
                     HarmonyPatchUtil.UnequipPrimaryWeapon(pawn, c);
                 }
@@ -177,7 +175,7 @@ namespace WeaponStorage
                 pawn.Faction == Faction.OfPlayer &&
                 pawn.def.race.Humanlike)
             {
-                if (WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c) &&
+                if (WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer c) &&
                     pawn.equipment?.Primary == null)
                 {
                     if (c.TryGetLastThingUsed(pawn, out ThingWithComps w))
@@ -422,9 +420,9 @@ namespace WeaponStorage
                     __instance.equipment?.Remove(__state.Weapon);
                 }
 
-                if (WorldComp.AssignedWeapons.TryGetValue(__instance, out AssignedWeaponContainer c))
+                if (WorldComp.TryGetAssignedWeapons(__instance, out AssignedWeaponContainer c))
                 {
-                    WorldComp.AssignedWeapons.Remove(__instance);
+                    WorldComp.RemoveAssignedWeapons(__instance);
 
                     foreach (ThingWithComps w in c.Weapons)
                     {
@@ -485,9 +483,9 @@ namespace WeaponStorage
         }
         static void Postfix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
         {
-            if (__instance.pawn.Faction == Faction.OfPlayer && WorldComp.HasStorages())
+            if (__instance.pawn.Faction == Faction.OfPlayer && WorldComp.HasStorages() && 
+                WorldComp.CreateOrGetAssignedWeapons(__instance.pawn, out AssignedWeaponContainer aw))
             {
-                AssignedWeaponContainer aw = WorldComp.CreateOrGetAssignedWeapons(__instance.pawn);
                 aw.Add(newEq);
             }
         }
@@ -509,7 +507,7 @@ namespace WeaponStorage
         {
             if (__state != null)
             {
-                if (WorldComp.AssignedWeapons.TryGetValue(__state, out AssignedWeaponContainer c) &&
+                if (WorldComp.TryGetAssignedWeapons(__state, out AssignedWeaponContainer c) &&
                     c.Contains(eq))
                 {
                     if (!Settings.AllowPawnsToDropWeapon)
@@ -570,7 +568,7 @@ namespace WeaponStorage
         {
             if (eq.def.equipmentType == EquipmentType.Primary && __instance.Primary != null)
             {
-                if (WorldComp.AssignedWeapons.TryGetValue(__instance.pawn, out AssignedWeaponContainer c) &&
+                if (WorldComp.TryGetAssignedWeapons(__instance.pawn, out AssignedWeaponContainer c) &&
                     c.Contains(eq))
                 {
                     __instance.Remove(eq);
@@ -626,7 +624,7 @@ namespace WeaponStorage
 
             Pawn pawn = __instance.Pawn;
             if (pawn != null &&
-                WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
+                WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer c))
             {
                 Verb attackVerb = pawn.TryGetAttackVerb(target, !pawn.IsColonist);
                 if (attackVerb != null && attackVerb.verbProps.IsMeleeAttack)
@@ -720,7 +718,7 @@ namespace WeaponStorage
         static void Prefix(Verb_ShootOneUse __instance)
         {
             if (__instance.caster is Pawn pawn &&
-                WorldComp.AssignedWeapons.TryGetValue(pawn, out AssignedWeaponContainer c))
+                WorldComp.TryGetAssignedWeapons(pawn, out AssignedWeaponContainer c))
             {
                 c.Remove(__instance.EquipmentSource);
             }
