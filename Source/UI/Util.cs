@@ -18,9 +18,15 @@ namespace WeaponStorage.UI
 			get
 			{
 				if (this.labelAndStats == null)
-					this.labelAndStats = Pawn.Name.ToStringShort + "-- " + SkillDefOf.Melee.label + ": " + Melee + " -- " + SkillDefOf.Shooting.label + ": " + Ranged;
+					this.labelAndStats = GetLabelAndStatsFor(Pawn);
 				return this.labelAndStats;
 			}
+		}
+		public static string GetLabelAndStatsFor(Pawn pawn)
+		{
+			var melee = (pawn.WorkTagIsDisabled(WorkTags.Violent) ? "-" : pawn.skills.GetSkill(SkillDefOf.Melee).levelInt.ToString());
+			var ranged = (pawn.WorkTagIsDisabled(WorkTags.Violent) ? "-" : pawn.skills.GetSkill(SkillDefOf.Shooting).levelInt.ToString());
+			return $"{pawn.Name.ToStringShort} -- {SkillDefOf.Melee.label}: {melee} -- {SkillDefOf.Shooting.label}: {ranged}";
 		}
 		public string Melee => ((Pawn.WorkTagIsDisabled(WorkTags.Violent)) ? "-" : Pawn.skills.GetSkill(SkillDefOf.Melee).levelInt.ToString());
 		public string Ranged => ((Pawn.WorkTagIsDisabled(WorkTags.Violent)) ? "-" : Pawn.skills.GetSkill(SkillDefOf.Shooting).levelInt.ToString());

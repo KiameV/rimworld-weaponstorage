@@ -150,7 +150,8 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Prefix(Pawn_HealthTracker __instance, ref ThingWithComps __state)
         {
-            if (pawnFI.GetValue(__instance) is Pawn pawn &&
+            if (Settings.EnableAssignWeapons &&
+                pawnFI.GetValue(__instance) is Pawn pawn &&
                 !__instance.Downed &&
                 pawn.IsColonist &&
                 pawn.equipment?.Primary != null)
@@ -169,6 +170,9 @@ namespace WeaponStorage
         [HarmonyPriority(Priority.First)]
         static void Prefix(Pawn_HealthTracker __instance)
         {
+            if (!Settings.EnableAssignWeapons)
+                return;
+
             Pawn pawn = (Pawn)__instance.GetType().GetField(
                 "pawn", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(__instance);
             if (pawn != null &&

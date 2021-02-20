@@ -151,8 +151,8 @@ namespace WeaponStorage.UI
                     }
                     x += 30;
 
-                    label = (this.assignedWeapons != null) ? this.assignedWeapons.Pawn.Name.ToStringShort : "";
-                    if (Widgets.ButtonText(new Rect(x, y, 200, 30), label))
+                    label = (this.assignedWeapons != null) ? SelectablePawns.GetLabelAndStatsFor(this.assignedWeapons.Pawn) : "";
+                    if (Widgets.ButtonText(new Rect(x, y, 400, 30), label))
                     {
                         List<FloatMenuOption> options = new List<FloatMenuOption>();
                         foreach (SelectablePawns p in this.selectablePawns)
@@ -164,7 +164,7 @@ namespace WeaponStorage.UI
                         }
                         Find.WindowStack.Add(new FloatMenu(options));
                     }
-                    x += 200;
+                    x += 400;
 
                     if (this.selectablePawns.Count > 0 &&
                         GUI.Button(new Rect(x, y, 30, 30), nextTexture))
@@ -192,7 +192,7 @@ namespace WeaponStorage.UI
                 x += 30;
 
                 label = (this.weaponStorage != null) ? this.weaponStorage.Label : "";
-                if (Widgets.ButtonText(new Rect(x, y, 250, 30), label))
+                if (Widgets.ButtonText(new Rect(x, y, 400, 30), label))
                 {
                     List<FloatMenuOption> options = new List<FloatMenuOption>();
                     foreach (var ws in WorldComp.GetWeaponStorages())
@@ -205,7 +205,7 @@ namespace WeaponStorage.UI
                     }
                     Find.WindowStack.Add(new FloatMenu(options));
                 }
-                x += 250;
+                x += 400;
 
                 if (WorldComp.HasStorages() &&
                     GUI.Button(new Rect(x, y, 30, 30), nextTexture))
