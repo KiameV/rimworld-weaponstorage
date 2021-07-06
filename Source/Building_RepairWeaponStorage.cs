@@ -164,7 +164,7 @@ namespace WeaponStorage
 
                     float generatedHeat = GenTemperature.ControlTemperatureTempChange(
                         base.Position, base.Map, 10, float.MaxValue);
-                    this.GetRoomGroup().Temperature += generatedHeat;
+                    this.GetRoom(RegionType.Set_All).Temperature += generatedHeat;
 
                     this.compPowerTrader.PowerOutput = -this.compPowerTrader.Props.basePowerConsumption;
                 }

@@ -321,7 +321,7 @@ namespace WeaponStorage.UI
                             break;
                         }
 
-                        var biocodableComp = weapon.GetComp<CompBiocodableWeapon>();
+                        var biocodableComp = weapon.GetComp<CompBiocodable>();
                         if (biocodableComp?.CodedPawn != null)
                         {
                             y += HEIGHT - 4;
@@ -408,7 +408,7 @@ namespace WeaponStorage.UI
                                 break;
                             }
 
-                            var biocodableComp = t.GetComp<CompBiocodableWeapon>();
+                            var biocodableComp = t.GetComp<CompBiocodable>();
                             if (biocodableComp?.CodedPawn != null)
                             {
                                 y += HEIGHT - 4;

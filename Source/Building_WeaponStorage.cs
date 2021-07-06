@@ -1,5 +1,4 @@
 ﻿using RimWorld;
-using SaveStorageSettingsUtil;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -284,7 +283,7 @@ namespace WeaponStorage
 
 		private bool Contains(ThingWithComps t)
 		{
-            return this.Contains(t, (EquipmentUtility.IsBiocoded(t)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
+            return this.Contains(t, (CompBiocodable.IsBiocoded(t)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
 		}
 
         private bool Contains(ThingWithComps t, Dictionary<ThingDef, LinkedList<ThingWithComps>> storage)
@@ -319,7 +318,7 @@ namespace WeaponStorage
                     return true;
                 }
 
-                this.AddToSortedList(weapon, (EquipmentUtility.IsBiocoded(weapon)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
+                this.AddToSortedList(weapon, (CompBiocodable.IsBiocoded(weapon)) ? this.StoredBioEncodedWeapons : this.StoredWeapons);
                 return true;
             }
             return false;
@@ -535,7 +534,7 @@ namespace WeaponStorage
                 {
                     foreach (ThingWithComps t in this.temp)
                     {
-                        if (EquipmentUtility.IsBiocoded(t))
+                        if (CompBiocodable.IsBiocoded(t))
                             this.AddToSortedList(t, this.StoredBioEncodedWeapons);
                         else
                             this.AddToSortedList(t, this.StoredWeapons);
@@ -603,7 +602,7 @@ namespace WeaponStorage
             if (weapon == null)
                 return true;
 
-            if (!EquipmentUtility.IsBiocoded(weapon))
+            if (!CompBiocodable.IsBiocoded(weapon))
             {
                 //Log.Warning("Remove non-biocoded");
                 return this.RemoveFrom(weapon, this.StoredWeapons);
@@ -833,7 +832,7 @@ namespace WeaponStorage
             });
             ++groupKey;
 
-            return SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
+            return l;// SaveStorageSettingsGizmoUtil.AddSaveLoadGizmos(l, "Weapon_Management", this.settings.filter);
         }
 #endregion
 
