@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
-	<ThingDef ParentName="ArtableFurnitureBase">
-		<defName>ChangeDresser</defName>
-		<label>change dresser</label>
-		<description>A place to store and modify apparel as well as get ready for the morning.</description>
-		<thingClass>ChangeDresser.Building_Dresser</thingClass>
+	<ThingDef ParentName="FurnitureBase">
+		<defName>WeaponStorage</defName>
+		<label>weapon storage</label>
+		<description>Store weapons for use later.</description>
+		<thingClass>WeaponStorage.Building_WeaponStorage</thingClass>
 		<graphicData>
-			<texPath>Furniture/ColorChangeDresser</texPath>
+			<texPath>Furniture/WeaponStorage</texPath>
 			<graphicClass>Graphic_Multi</graphicClass>
 			<drawSize>(1,1)</drawSize>
 			<damageData>
@@ -20,23 +20,22 @@
 		<passability>PassThroughOnly</passability>
 		<fillPercent>0.4</fillPercent>
 		<castEdgeShadows>true</castEdgeShadows>
-		<pathCost>60</pathCost>
 		<stuffCategories>
 			<li>Metallic</li>
 			<li>Woody</li>
 			<li>Stony</li>
 		</stuffCategories>
 		<costStuffCount>40</costStuffCount>
-		<defaultPlacingRot>South</defaultPlacingRot>
 		<costList>
 			<Steel>40</Steel>
 		</costList>
+		<defaultPlacingRot>South</defaultPlacingRot>
 		<statBases>
 			<MaxHitPoints>100</MaxHitPoints>
 			<Mass>15</Mass>
 			<WorkToBuild>2000</WorkToBuild>
 			<Flammability>1.0</Flammability>
-			<Beauty>5</Beauty>
+			<Beauty>-5</Beauty>
 		</statBases>
 		<size>(1,1)</size>
 		<designationHotKey>Misc12</designationHotKey>
@@ -46,24 +45,15 @@
 		<placeWorkers>
 			<li>PlaceWorker_ShowFacilitiesConnections</li>
 		</placeWorkers>
-		<researchPrerequisites>
-			<li>ComplexFurniture</li>
-		</researchPrerequisites>
 		<comps>
 			<li Class="CompProperties_Facility">
-				<statOffsets>
-					<Comfort>0.05</Comfort>
-				</statOffsets>
 				<maxSimultaneous>1</maxSimultaneous>
 				<maxDistance>6</maxDistance>
 			</li>
 			<li Class="CompProperties_AffectedByFacilities">
 				<linkableFacilities>
-					<li>RepairChangeDresser</li>
+					<li>RepairWeaponStorage</li>
 				</linkableFacilities>
-			</li>
-			<li Class="SaveStorageSettings.CompProperties_SaveStorageSettings">
-				<name>Apparel_Management</name>
 			</li>
 		</comps>
 		<inspectorTabs>
@@ -74,7 +64,7 @@
 			<fixedStorageSettings>
 				<filter>
 					<categories>
-						<li>Apparel</li>
+						<li>Weapons</li>
 					</categories>
 					<thingDefs />
 				</filter>
@@ -83,84 +73,26 @@
 				<priority>Low</priority>
 				<filter>
 					<categories>
-						<li>Apparel</li>
+						<li>Weapons</li>
 					</categories>
 				</filter>
 			</defaultStorageSettings>
 		</building>
 		<hasInteractionCell>True</hasInteractionCell>
 		<interactionCellOffset>(0,0,1)</interactionCellOffset>
-		<designationCategory>Furniture</designationCategory>
+		<designationCategory>Misc</designationCategory>
 		<tickerType>Long</tickerType>
 	</ThingDef>
 
-	<ThingDef ParentName="ArtableFurnitureBase">
-		<defName>ChangeMirror</defName>
-		<label>change mirror</label>
-		<description>Apply makeup and cut and dye hair.</description>
-		<thingClass>ChangeDresser.Building_ChangeMirror</thingClass>
+	<ThingDef ParentName="FurnitureBase">
+		<defName>RepairWeaponStorage</defName>
+		<label>repair attachment</label>
+		<description>An attachment to weapon storages which can repair the stored weapons.</description>
+		<thingClass>WeaponStorage.Building_RepairWeaponStorage</thingClass>
 		<graphicData>
-			<texPath>Furniture/ColorChangeDresser_mirror</texPath>
+			<texPath>Furniture/RepairWeaponStorage</texPath>
 			<graphicClass>Graphic_Multi</graphicClass>
 			<shaderType>CutoutComplex</shaderType>
-			<drawSize>(1,1)</drawSize>
-		</graphicData>
-		<altitudeLayer>BuildingOnTop</altitudeLayer>
-		<passability>Standable</passability>
-		<fillPercent>0.4</fillPercent>
-		<castEdgeShadows>false</castEdgeShadows>
-		<clearBuildingArea>false</clearBuildingArea>
-		<stuffCategories>
-			<li>Metallic</li>
-			<li>Woody</li>
-			<li>Stony</li>
-		</stuffCategories>
-		<costStuffCount>20</costStuffCount>
-		<costList>
-			<Steel>20</Steel>
-		</costList>
-		<defaultPlacingRot>South</defaultPlacingRot>
-		<statBases>
-			<MaxHitPoints>100</MaxHitPoints>
-			<Mass>5</Mass>
-			<WorkToBuild>1500</WorkToBuild>
-			<Flammability>1.0</Flammability>
-			<Beauty>5</Beauty>
-		</statBases>
-		<size>(1,1)</size>
-		<designationHotKey>Misc12</designationHotKey>
-		<staticSunShadowHeight>0.5</staticSunShadowHeight>
-		<surfaceType>None</surfaceType>
-		<canOverlapZones>false</canOverlapZones>
-		<placeWorkers>
-			<li>PlaceWorker_ShowFacilitiesConnections</li>
-		</placeWorkers>
-		<comps>
-			<li Class="CompProperties_Facility">
-				<statOffsets>
-					<Comfort>0.05</Comfort>
-				</statOffsets>
-				<maxSimultaneous>1</maxSimultaneous>
-				<maxDistance>8</maxDistance>
-			</li>
-		</comps>
-		<building>
-			<canPlaceOverWall>true</canPlaceOverWall>
-			<isEdifice>false</isEdifice>
-		</building>
-		<hasInteractionCell>True</hasInteractionCell>
-		<interactionCellOffset>(0,0,1)</interactionCellOffset>
-		<designationCategory>Furniture</designationCategory>
-	</ThingDef>
-
-	<ThingDef ParentName="FurnitureBase">
-		<defName>RepairChangeDresser</defName>
-		<label>mending attachment</label>
-		<description>An attachment to change dressers which can mend the stored apparel.</description>
-		<thingClass>ChangeDresser.Building_RepairChangeDresser</thingClass>
-		<graphicData>
-			<texPath>Furniture/RepairChangeDresser</texPath>
-			<graphicClass>Graphic_Multi</graphicClass>
 			<drawSize>(1,1)</drawSize>
 			<damageData>
 				<cornerTL>Damage/Corner</cornerTL>
@@ -173,6 +105,7 @@
 		<passability>PassThroughOnly</passability>
 		<fillPercent>0.4</fillPercent>
 		<castEdgeShadows>true</castEdgeShadows>
+		<clearBuildingArea>true</clearBuildingArea>
 		<stuffCategories>
 			<li>Metallic</li>
 			<li>Woody</li>
