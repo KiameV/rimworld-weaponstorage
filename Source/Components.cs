@@ -341,5 +341,13 @@ namespace WeaponStorage
                 return AssignedWeapons.Values;
             }
         }
+
+        public static void ClearAll()
+        {
+            WeaponStoragesToUse.Clear();
+            AssignedWeapons.Clear();
+            SharedWeaponFilter.Clear();
+            WeaponsToDrop.Clear();
+        }
     }
 }

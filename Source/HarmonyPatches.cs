@@ -487,7 +487,7 @@ namespace WeaponStorage
         }
         static void Postfix(Pawn_EquipmentTracker __instance, ThingWithComps newEq)
         {
-            if (__instance.pawn.Faction == Faction.OfPlayer && WorldComp.HasStorages() && 
+            if (__instance.pawn.Faction == Faction.OfPlayerSilentFail && WorldComp.HasStorages() && 
                 WorldComp.CreateOrGetAssignedWeapons(__instance.pawn, out AssignedWeaponContainer aw))
             {
                 aw.Add(newEq);
@@ -749,6 +749,16 @@ namespace WeaponStorage
                     }
                 }
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(MoveColonyUtility), "MoveColonyAndReset")]
+    static class Patch_MoveColonyUtility_MoveColonyAndReset
+    {
+        [HarmonyPriority(Priority.First)]
+        static void Prefix()
+        {
+            WorldComp.ClearAll();
         }
     }
 }
